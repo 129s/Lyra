@@ -7,11 +7,17 @@
 #include <Windows.h>
 #include "vst2.x/aeffectx.h"
 
+#include <mmsystem.h>
+#include <thread>
+#pragma comment(lib, "Winmm.lib")
+
+// 全局变量
+std::atomic<bool> g_running{true};
+
 // 全局变量声明
 // ---------------------------------------------------------------
 AEffect *g_plugin = nullptr;
 HINSTANCE g_dll_handle = nullptr;
-std::atomic<bool> g_running{true};
 
 // MIDI事件队列（线程安全）
 // ---------------------------------------------------------------
@@ -23,11 +29,10 @@ struct MidiEvent
 
 class MidiEventQueue
 {
-private:
+public:
     std::queue<MidiEvent> queue_;
     std::mutex mutex_;
 
-public:
     void push(const VstMidiEvent &event, unsigned int frame_offset = 0)
     {
         std::lock_guard<std::mutex> lock(mutex_);
@@ -144,8 +149,128 @@ void SendMidiNote(byte note, byte velocity, bool on)
     g_midi_queue.push(event);
 }
 
+// WaveOut相关变量
+HWAVEOUT hWaveOut = nullptr;
+WAVEHDR waveBuffers[4];
+std::queue<WAVEHDR *> availableBuffers;
+std::mutex bufferMutex;
+const int BLOCK_SIZE = 512; // 与插件块大小一致
+
+void CALLBACK waveOutCallback(HWAVEOUT hwo, UINT uMsg, DWORD_PTR dwInstance, DWORD_PTR dwParam1, DWORD_PTR dwParam2)
+{
+    if (uMsg == WOM_DONE)
+    {
+        WAVEHDR *hdr = (WAVEHDR *)dwParam1;
+        std::lock_guard<std::mutex> lock(bufferMutex);
+        availableBuffers.push(hdr);
+    }
+}
+
+bool InitWaveOut()
+{
+    WAVEFORMATEX waveFormat;
+    ZeroMemory(&waveFormat, sizeof(waveFormat));
+    waveFormat.wFormatTag = WAVE_FORMAT_PCM;
+    waveFormat.nChannels = 2;
+    waveFormat.nSamplesPerSec = 44100;
+    waveFormat.wBitsPerSample = 16;
+    waveFormat.nBlockAlign = (waveFormat.nChannels * waveFormat.wBitsPerSample) / 8;
+    waveFormat.nAvgBytesPerSec = waveFormat.nSamplesPerSec * waveFormat.nBlockAlign;
+
+    if (waveOutOpen(&hWaveOut, WAVE_MAPPER, &waveFormat, (DWORD_PTR)waveOutCallback, 0, CALLBACK_FUNCTION) != 0)
+    {
+        std::cerr << "无法打开音频设备" << std::endl;
+        return false;
+    }
+
+    // 初始化缓冲区
+    for (int i = 0; i < 4; ++i)
+    {
+        ZeroMemory(&waveBuffers[i], sizeof(WAVEHDR));
+        waveBuffers[i].dwBufferLength = BLOCK_SIZE * 2 * sizeof(short); // 立体声
+        waveBuffers[i].lpData = new char[waveBuffers[i].dwBufferLength];
+        waveOutPrepareHeader(hWaveOut, &waveBuffers[i], sizeof(WAVEHDR));
+        availableBuffers.push(&waveBuffers[i]);
+    }
+    return true;
+}
+
+void ProcessMidiEvents(VstEvents &events)
+{
+    std::lock_guard<std::mutex> lock(g_midi_queue.mutex_);
+    events.numEvents = 0;
+
+    while (!g_midi_queue.queue_.empty())
+    {
+        auto &midiEvent = g_midi_queue.queue_.front();
+        VstMidiEvent *vstEvent = new VstMidiEvent();
+        memcpy(vstEvent, &midiEvent.event, sizeof(VstMidiEvent));
+        events.events[events.numEvents++] = reinterpret_cast<VstEvent *>(vstEvent);
+        g_midi_queue.queue_.pop();
+    }
+}
+
+void AudioProcessingThread()
+{
+    float **outputs = new float *[2]; // 用于存放插件的输出
+    outputs[0] = new float[BLOCK_SIZE];
+    outputs[1] = new float[BLOCK_SIZE];
+
+    while (g_running)
+    {
+        // 等待可用缓冲区
+        WAVEHDR *hdr = nullptr;
+        {
+            std::unique_lock<std::mutex> lock(bufferMutex);
+            while (availableBuffers.empty())
+            {
+                lock.unlock();
+                std::this_thread::sleep_for(std::chrono::milliseconds(10));
+                lock.lock();
+            }
+            hdr = availableBuffers.front();
+            availableBuffers.pop();
+        }
+
+        // 处理MIDI事件
+        VstEvents events;
+        events.numEvents = 0;
+
+        // 从队列获取MIDI事件
+        ProcessMidiEvents(events);
+
+        // 发送事件给插件
+        g_plugin->dispatcher(g_plugin, effProcessEvents, 0, 0, &events, 0);
+
+        // 处理音频
+        g_plugin->processReplacing(g_plugin, nullptr, outputs, BLOCK_SIZE);
+
+        // 转换到16位PCM
+        short *pcm = reinterpret_cast<short *>(hdr->lpData);
+        for (int i = 0; i < BLOCK_SIZE; ++i)
+        {
+            pcm[i * 2] = static_cast<short>(outputs[0][i] * 32767.0f);
+            pcm[i * 2 + 1] = static_cast<short>(outputs[1][i] * 32767.0f);
+        }
+
+        // 提交音频缓冲区
+        waveOutWrite(hWaveOut, hdr, sizeof(WAVEHDR));
+    }
+
+    delete[] outputs[0];
+    delete[] outputs[1];
+    delete[] outputs;
+}
+
 int test()
 {
+    // 初始化音频输出
+    if (!InitWaveOut())
+        return 1;
+
+    // 启动音频线程
+    std::thread audioThread(AudioProcessingThread);
+
     printf("加载Pianoteq\n");
     // 加载Pianoteq
     if (!LoadVSTPlugin("L:\\CppProject\\Lyra\\plugin\\Pianoteq 6.dll"))
@@ -154,7 +279,7 @@ int test()
     }
 
     // 交互测试
-    std::cout << "按回车键播放C大调和弦，按q退出..." << std::endl;
+    std::cout << "按回车键播放C和弦，按q退出..." << std::endl;
     while (g_running)
     {
         int c = std::cin.get();
@@ -173,7 +298,18 @@ int test()
     }
 
     // 清理
+    g_running = false;
+    audioThread.join();
 
+    // 释放WaveOut资源
+    for (int i = 0; i < 4; ++i)
+    {
+        waveOutUnprepareHeader(hWaveOut, &waveBuffers[i], sizeof(WAVEHDR));
+        delete[] waveBuffers[i].lpData;
+    }
+    waveOutClose(hWaveOut);
+
+    // 释放plugin资源
     if (g_plugin)
     {
         g_plugin->dispatcher(g_plugin, effMainsChanged, 0, 0, 0, 0);
