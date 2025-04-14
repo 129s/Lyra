@@ -1,12 +1,11 @@
-// host.cpp
+
 #include <iostream>
 #include <atomic>
 #include <vector>
 #include <queue>
 #include <mutex>
 #include <Windows.h>
-#include <audioeffectx.h>
-#include "rtaudio/RtAudio.h"
+#include "vst2.x/aeffectx.h"
 
 // 全局变量声明
 // ---------------------------------------------------------------
@@ -61,11 +60,8 @@ MidiEventQueue g_midi_queue;
 
 // VST宿主回调函数
 // ---------------------------------------------------------------
-VstIntPtr hostCallback(AEffect *effect, VstInt32 opcode, VstInt32 index, VstInt32 value, void *ptr, float opt)
+VstIntPtr VSTCALLBACK hostCallback(AEffect *effect, VstInt32 opcode, VstInt32 index, VstIntPtr value, void *ptr, float opt)
 {
-    va_list args;
-    va_start(args, opcode);
-
     switch (opcode)
     {
     case audioMasterVersion:
@@ -84,72 +80,15 @@ VstIntPtr hostCallback(AEffect *effect, VstInt32 opcode, VstInt32 index, VstInt3
         return kVstProcessLevelRealtime; // 实时音频线程
 
     case audioMasterGetProductString:
-        strcpy(va_arg(args, char *), "MiniHost");
+        strncpy((char *)ptr, "Lyra Host", kVstMaxProductStrLen);
         return 1;
 
     default:
         return 0;
     }
-
-    va_end(args);
 }
 
-// 音频处理回调（由RtAudio驱动）
-// ---------------------------------------------------------------
-int AudioCallback(void *outputBuffer, void *inputBuffer,
-                  unsigned int nFrames, double streamTime,
-                  RtAudioStreamStatus status, void *userData)
-{
-    float **buffers = static_cast<float **>(outputBuffer);
-
-    // 准备VST处理数据结构
-    VstProcessBuffers processData{};
-    processData.numSamples = nFrames;
-    processData.inputs = nullptr;
-    processData.outputs = buffers;
-    processData.symbolicSampleSize = kVstSamplesType;
-
-    // 处理MIDI事件
-    VstEvents *events = nullptr;
-    std::vector<VstMidiEvent> midiEvents;
-    std::vector<VstEvent *> eventPtrs;
-
-    // 从队列中提取MIDI事件
-    VstMidiEvent event;
-    unsigned int frameOffset;
-    while (g_midi_queue.pop(event, frameOffset))
-    {
-        if (frameOffset < nFrames)
-        {
-            midiEvents.push_back(event);
-            eventPtrs.push_back(reinterpret_cast<VstEvent *>(&midiEvents.back()));
-        }
-    }
-
-    if (!eventPtrs.empty())
-    {
-        events = new VstEvents;
-        events->numEvents = eventPtrs.size();
-        for (size_t i = 0; i < eventPtrs.size(); ++i)
-        {
-            events->events[i] = eventPtrs[i];
-        }
-    }
-
-    // 调用插件处理
-    if (g_plugin->process)
-    {
-        g_plugin->process(g_plugin, &processData);
-    }
-
-    if (events)
-    {
-        delete events; // 注意：实际需要深层清理，此处简化
-    }
-
-    return 0;
-}
-
+typedef AEffect *(*VstMainFunc)(audioMasterCallback host);
 // VST插件加载与初始化
 // ---------------------------------------------------------------
 bool LoadVSTPlugin(const char *dllPath)
@@ -158,6 +97,7 @@ bool LoadVSTPlugin(const char *dllPath)
     g_dll_handle = LoadLibraryA(dllPath);
     if (!g_dll_handle)
     {
+        printf("错误：%d\n", GetLastError());
         std::cerr << "无法加载DLL: " << dllPath << std::endl;
         return false;
     }
@@ -171,7 +111,7 @@ bool LoadVSTPlugin(const char *dllPath)
     }
 
     // 创建插件实例
-    g_plugin = mainEntry(HostCallback);
+    g_plugin = mainEntry(hostCallback);
     if (!g_plugin)
     {
         std::cerr << "无法创建插件实例" << std::endl;
@@ -204,38 +144,12 @@ void SendMidiNote(byte note, byte velocity, bool on)
     g_midi_queue.push(event);
 }
 
-// 主程序
-// ---------------------------------------------------------------
-int main()
+int test()
 {
+    printf("加载Pianoteq\n");
     // 加载Pianoteq
-    if (!LoadVSTPlugin("C:\\Program Files\\Pianoteq\\Pianoteq 8\\x64\\Pianoteq 8.vst3"))
+    if (!LoadVSTPlugin("L:\\CppProject\\Lyra\\plugin\\Pianoteq 6.dll"))
     {
-        return 1;
-    }
-
-    // 初始化音频流
-    RtAudio dac;
-    if (dac.getDeviceCount() < 1)
-    {
-        std::cerr << "未找到音频设备" << std::endl;
-        return 1;
-    }
-
-    RtAudio::StreamParameters params;
-    params.deviceId = dac.getDefaultOutputDevice();
-    params.nChannels = 2;
-    unsigned int bufferFrames = 512;
-
-    try
-    {
-        dac.openStream(&params, nullptr, RTAUDIO_FLOAT32, 44100,
-                       &bufferFrames, &AudioCallback, nullptr);
-        dac.startStream();
-    }
-    catch (RtAudioError &e)
-    {
-        e.printMessage();
         return 1;
     }
 
@@ -259,7 +173,7 @@ int main()
     }
 
     // 清理
-    dac.stopStream();
+
     if (g_plugin)
     {
         g_plugin->dispatcher(g_plugin, effMainsChanged, 0, 0, 0, 0);
