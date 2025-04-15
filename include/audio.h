@@ -5,6 +5,7 @@
 #include <thread>
 #include <atomic>
 #include "host.h"
+#include <condition_variable>
 
 class AudioOutput
 {
@@ -27,4 +28,5 @@ private:
     std::mutex bufferMutex_;
     std::thread processingThread_;
     std::atomic<bool> running_{false};
+    std::condition_variable bufferCV_;
 };

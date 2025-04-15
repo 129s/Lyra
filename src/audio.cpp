@@ -100,6 +100,7 @@ void CALLBACK AudioOutput::WaveOutCallback(HWAVEOUT hwo, UINT uMsg, DWORD_PTR in
         // 将缓冲区返回到可用缓冲区队列
         std::lock_guard<std::mutex> lock(self->bufferMutex_); // 加锁，保证线程安全
         self->availableBuffers_.push(hdr);                    // 将缓冲区添加到可用缓冲区队列
+        self->bufferCV_.notify_one();
     }
 }
 
@@ -108,6 +109,7 @@ void AudioOutput::ProcessingLoop()
 {
     const int blockSize = host_.GetBlockSize();                      // 获取块大小
     float *outputs[] = {new float[blockSize], new float[blockSize]}; // 创建输出缓冲区（左右声道）
+    constexpr auto kSleepWhenBusy = std::chrono::microseconds(500);  // 优化等待时间
 
     // 循环处理音频
     while (running_)
@@ -117,6 +119,8 @@ void AudioOutput::ProcessingLoop()
         // 从可用缓冲区队列中获取一个缓冲区
         {
             std::unique_lock<std::mutex> lock(bufferMutex_); // 使用unique_lock，允许条件变量
+            bufferCV_.wait_for(lock, kSleepWhenBusy, [this]
+                               { return !availableBuffers_.empty() || !running_; });
             if (availableBuffers_.empty())
                 continue;                    // 如果没有可用缓冲区，则继续循环
             hdr = availableBuffers_.front(); // 获取队列头部的缓冲区

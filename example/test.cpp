@@ -9,7 +9,6 @@ std::atomic<bool> running{true};
 int main()
 {
     VSTHost host;
-
     host.UseProcessor(new SineWaveProcessor(44100, 512));
 
     AudioOutput audio(host);
@@ -18,28 +17,34 @@ int main()
 
     audio.Start();
 
-    // 添加全局事件间隔控制
-    constexpr std::chrono::milliseconds NOTE_DURATION = std::chrono::milliseconds(125); // 音符持续时间
+    constexpr auto NOTE_DURATION = std::chrono::milliseconds(120);
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<int> dist(0, 9);
 
-    while (running)
+    while (true)
     {
-        // 生成随机音符
-        static std::mt19937 gen(std::random_device{}());
-        std::uniform_int_distribution<int> dist(36, 84);
-        int note = dist(gen);
+        int pentatonic_scale[10] = {
+            70,
+            72,
+            75,
+            77,
+            79,
+            82,
+            84,
+            87,
+            89,
+            91,
+        };
+        int note = pentatonic_scale[dist(gen)];
+        note -= 4;
+        std::cout << "▶ Play note: " << note << std::endl;
 
-        // 发送Note On
         host.SendMidiNote(note, 100, true);
-        std::cout << "Play note: " << note << "\n"; // 换用\n提升性能
-
-        // 等待音符持续时间
-        auto start = std::chrono::steady_clock::now();
-        while (std::chrono::steady_clock::now() - start < NOTE_DURATION)
-        {
-            continue;
-        }
-
-        // 发送Note Off
+        std::this_thread::sleep_for(NOTE_DURATION);
         host.SendMidiNote(note, 0, false);
     }
+
+    audio.Stop();
+    return 0;
 }
