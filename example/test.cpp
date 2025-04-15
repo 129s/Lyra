@@ -59,21 +59,21 @@ int main()
     {
         auto now = std::chrono::steady_clock::now();
 
-        // // 处理和弦切换
-        // if (now - last_chord_time >= CHORD_DURATION)
-        // {
-        //     // 关闭旧和弦
-        //     PlayChord(host, chord_progression[current_chord], 0, false);
+        // 处理和弦切换
+        if (now - last_chord_time >= CHORD_DURATION)
+        {
+            // 关闭旧和弦
+            PlayChord(host, chord_progression[current_chord], 0, false);
 
-        //     // 切换到下一个和弦
-        //     current_chord = (current_chord + 1) % chord_progression.size();
+            // 切换到下一个和弦
+            current_chord = (current_chord + 1) % chord_progression.size();
 
-        //     // 触发新和弦
-        //     PlayChord(host, chord_progression[current_chord], 20, true);
+            // 触发新和弦
+            PlayChord(host, chord_progression[current_chord], 20, true);
 
-        //     last_chord_time = now;
-        //     std::cout << "和弦切换至: " << (current_chord + 1) << std::endl;
-        // }
+            last_chord_time = now;
+            std::cout << "和弦切换至: " << (current_chord + 1) << std::endl;
+        }
 
         // 处理旋律
         if (now - last_melody_time > MELODY_INTERVAL)

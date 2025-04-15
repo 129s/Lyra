@@ -113,7 +113,7 @@ bool SineWaveProcessor::ProcessAudio(float *left, float *right, int numSamples)
             case kRelease:
             {
                 const double progress = static_cast<double>(voice.envelope_pos) / release_samples_;
-                *amp_ptr = voice.release_start_amp * (voice.max_amplitude - progress);
+                *amp_ptr = voice.release_start_amp * (1.0 - progress);
                 if (++voice.envelope_pos >= release_samples_)
                 {
                     voice.stage = kIdle;
