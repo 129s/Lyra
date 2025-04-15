@@ -26,6 +26,7 @@ private:
     double phase_{0.0};
     double frequency_{0.0};
     double amplitude_{0.0};
+    double max_amplitude_{1.0};
 
     // 包络相关
     enum EnvelopeStage

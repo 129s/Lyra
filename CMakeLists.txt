@@ -31,7 +31,7 @@ project(Lyra VERSION 0.1.0 LANGUAGES C CXX)
 
 # 目标配置
 add_executable(${PROJECT_NAME} 
-    WIN32 # 禁用控制台窗口
+    # WIN32 # 禁用控制台窗口
     example/test.cpp
     src/audio.cpp
     src/host.cpp

@@ -18,10 +18,12 @@ int main()
 
     audio.Start();
 
-    constexpr auto NOTE_DURATION = std::chrono::milliseconds(120);
+    constexpr auto NOTE_DURATION_BASE = 400;
     std::random_device rd;
     std::mt19937 gen(rd());
     std::uniform_int_distribution<int> dist(0, 9);
+
+    int i = 0;
 
     while (true)
     {
@@ -38,14 +40,16 @@ int main()
             91,
         };
         int note = pentatonic_scale[dist(gen)];
+        int velocity = 25 * (++i % 4 + 1);
+        auto duration = std::chrono::milliseconds(NOTE_DURATION_BASE / 4);
         note -= 4;
-        std::cout << "▶ Play note: " << note << std::endl;
+        std::cout << "Play note: " << note << " vel: " << velocity << "\n";
 
-        host.SendMidiNote(note, 100, true);
-        std::this_thread::sleep_for(NOTE_DURATION);
+        host.SendMidiNote(note, velocity, true);
+        std::this_thread::sleep_for(duration);
         host.SendMidiNote(note, 0, false);
         std::this_thread::sleep_for(std::chrono::milliseconds(25));
-        }
+    }
 
     audio.Stop();
     return 0;

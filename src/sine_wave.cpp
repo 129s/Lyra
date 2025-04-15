@@ -20,6 +20,7 @@ void SineWaveProcessor::ProcessMidiEvent(const VstMidiEvent &event)
         envelope_stage_ = kAttack;
         envelope_pos_ = 0;
         frequency_ = 440.0 * pow(2.0, (note - 69) / 12.0);
+        max_amplitude_ = velocity % 127 / 127.0f;
     }
     // Note Off
     else if (status == 0x80 || (status == 0x90 && velocity == 0))
@@ -38,13 +39,13 @@ bool SineWaveProcessor::ProcessAudio(float *left, float *right, int numSamples)
         switch (envelope_stage_)
         {
         case kAttack:
-            amplitude_ = std::min(static_cast<double>(envelope_pos_) / attack_samples_, 1.0);
+            amplitude_ = std::min(static_cast<double>(envelope_pos_) / attack_samples_, max_amplitude_);
             if (++envelope_pos_ >= attack_samples_)
                 envelope_stage_ = kIdle;
             break;
 
         case kRelease:
-            amplitude_ = std::max(1.0 - static_cast<double>(envelope_pos_) / release_samples_, 0.0);
+            amplitude_ = std::max(max_amplitude_ - static_cast<double>(envelope_pos_) / release_samples_, 0.0);
             if (++envelope_pos_ >= release_samples_)
             {
                 envelope_stage_ = kIdle;
