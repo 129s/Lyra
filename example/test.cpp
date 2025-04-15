@@ -44,7 +44,8 @@ int main()
         host.SendMidiNote(note, 100, true);
         std::this_thread::sleep_for(NOTE_DURATION);
         host.SendMidiNote(note, 0, false);
-    }
+        std::this_thread::sleep_for(std::chrono::milliseconds(25));
+        }
 
     audio.Stop();
     return 0;
