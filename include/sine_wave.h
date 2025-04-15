@@ -16,6 +16,7 @@ struct SineVoice
     double phase = 0.0;             // 独立相位
     double frequency = 0.0;         // 当前频率
     double amplitude = 0.0;         // 当前振幅
+    double max_amplitude = 1.0;     // 最大振幅
     double release_start_amp = 0.0; // Release起始振幅
     EnvelopeStage stage = kIdle;    // 包络状态
     int envelope_pos = 0;           // 包络位置计数器

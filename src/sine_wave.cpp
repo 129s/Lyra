@@ -1,3 +1,4 @@
+#include <iostream>
 
 #include "sine_wave.h"
 #include <cmath>
@@ -72,6 +73,7 @@ void SineWaveProcessor::ActivateVoice(int idx, int note, int velocity)
     voice.amplitude = 0.0;
     voice.stage = kAttack;
     voice.envelope_pos = 0;
+    voice.max_amplitude = velocity / 127.0f;
 }
 
 bool SineWaveProcessor::ProcessAudio(float *left, float *right, int numSamples)
@@ -111,7 +113,7 @@ bool SineWaveProcessor::ProcessAudio(float *left, float *right, int numSamples)
             case kRelease:
             {
                 const double progress = static_cast<double>(voice.envelope_pos) / release_samples_;
-                *amp_ptr = voice.release_start_amp * (1.0 - progress);
+                *amp_ptr = voice.release_start_amp * (voice.max_amplitude - progress);
                 if (++voice.envelope_pos >= release_samples_)
                 {
                     voice.stage = kIdle;
@@ -125,7 +127,7 @@ bool SineWaveProcessor::ProcessAudio(float *left, float *right, int numSamples)
             }
 
             // 生成波形
-            const double sample = *amp_ptr * sin(*phase_ptr);
+            const double sample = *amp_ptr * voice.max_amplitude * sin(*phase_ptr);
             left[i] += sample;
             right[i] += sample;
 
@@ -135,6 +137,13 @@ bool SineWaveProcessor::ProcessAudio(float *left, float *right, int numSamples)
             {
                 *phase_ptr -= 2.0 * M_PI;
             }
+        }
+
+        // 削波防止爆音
+        for (int i = 0; i < numSamples; ++i)
+        {
+            left[i] = std::max(-1.0f, std::min(left[i], 1.0f));
+            right[i] = std::max(-1.0f, std::min(right[i], 1.0f));
         }
     }
 
