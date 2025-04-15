@@ -9,8 +9,9 @@ std::atomic<bool> running{true};
 int main()
 {
     VSTHost host;
-    host.UseProcessor(new SineWaveProcessor(44100, 512));
-
+    SineWaveProcessor osc = SineWaveProcessor(44100, 512);
+    osc.SetEnvelope(25.0f, 25.0f);
+    host.UseProcessor(&osc);
     AudioOutput audio(host);
     if (!audio.Initialize())
         return 1;

@@ -14,23 +14,49 @@ void SineWaveProcessor::ProcessMidiEvent(const VstMidiEvent &event)
     const byte note = event.midiData[1];
     const byte velocity = event.midiData[2];
 
+    // Note On
     if (status == 0x90 && velocity > 0)
-    { // Note On
+    {
+        envelope_stage_ = kAttack;
+        envelope_pos_ = 0;
         frequency_ = 440.0 * pow(2.0, (note - 69) / 12.0);
-        amplitude_ = velocity / 127.0;
     }
+    // Note Off
     else if (status == 0x80 || (status == 0x90 && velocity == 0))
-    { // Note Off
-        amplitude_ = 0.0;
+    {
+        envelope_stage_ = kRelease;
+        envelope_pos_ = 0;
     }
 }
-
 bool SineWaveProcessor::ProcessAudio(float *left, float *right, int numSamples)
 {
     const double phaseIncrement = 2.0 * M_PI * frequency_ / sampleRate_;
 
     for (int i = 0; i < numSamples; ++i)
     {
+        // 处理包络状态
+        switch (envelope_stage_)
+        {
+        case kAttack:
+            amplitude_ = std::min(static_cast<double>(envelope_pos_) / attack_samples_, 1.0);
+            if (++envelope_pos_ >= attack_samples_)
+                envelope_stage_ = kIdle;
+            break;
+
+        case kRelease:
+            amplitude_ = std::max(1.0 - static_cast<double>(envelope_pos_) / release_samples_, 0.0);
+            if (++envelope_pos_ >= release_samples_)
+            {
+                envelope_stage_ = kIdle;
+                amplitude_ = 0.0;
+            }
+            break;
+
+        case kIdle:
+            break;
+        }
+
+        // 生成正弦波
         const double sample = amplitude_ * sin(phase_);
         left[i] = sample;
         right[i] = sample;
@@ -39,5 +65,6 @@ bool SineWaveProcessor::ProcessAudio(float *left, float *right, int numSamples)
         if (phase_ >= 2.0 * M_PI)
             phase_ -= 2.0 * M_PI;
     }
+
     return true;
 }
