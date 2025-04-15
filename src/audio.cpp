@@ -36,10 +36,17 @@ bool AudioOutput::Initialize()
     waveFormat.nAvgBytesPerSec = waveFormat.nSamplesPerSec * waveFormat.nBlockAlign; // 平均字节速率
 
     // 打开音频设备
-    if (waveOutOpen(&waveOut_, WAVE_MAPPER, &waveFormat,
-                    (DWORD_PTR)WaveOutCallback, (DWORD_PTR)this, CALLBACK_FUNCTION) != MMSYSERR_NOERROR)
+    MMRESULT result = waveOutOpen(
+        &waveOut_,
+        WAVE_MAPPER,
+        &waveFormat,
+        reinterpret_cast<DWORD_PTR>(WaveOutCallback), // 强制类型转换
+        reinterpret_cast<DWORD_PTR>(this),            // 传递this指针
+        CALLBACK_FUNCTION);
+
+    if (result != MMSYSERR_NOERROR)
     {
-        std::cerr << "无法打开音频设备" << std::endl;
+        std::cerr << "无法打开音频设备，错误码: " << result << std::endl;
         return false;
     }
 
@@ -47,10 +54,19 @@ bool AudioOutput::Initialize()
     const int bufferSize = host_.GetBlockSize() * waveFormat.nBlockAlign; // 缓冲区大小 = 块大小 * 块对齐
     for (auto &buf : buffers_)
     {
-        buf.lpData = new char[bufferSize];                     // 分配缓冲区内存
-        buf.dwBufferLength = bufferSize;                       // 设置缓冲区长度
-        waveOutPrepareHeader(waveOut_, &buf, sizeof(WAVEHDR)); // 准备波形头
-        availableBuffers_.push(&buf);                          // 将缓冲区添加到可用缓冲区队列
+        buf.lpData = new char[bufferSize](); // 初始化为0
+        buf.dwBufferLength = bufferSize;
+        buf.dwFlags = 0;
+
+        MMRESULT prepResult = waveOutPrepareHeader(waveOut_, &buf, sizeof(WAVEHDR));
+        if (prepResult != MMSYSERR_NOERROR)
+        {
+            std::cerr << "准备缓冲区失败，错误码: " << prepResult << std::endl;
+            return false;
+        }
+
+        availableBuffers_.push(&buf);
+        // std::cout << "[初始化] 添加缓冲区: " << &buf << std::endl;
     }
 
     return true;
@@ -70,8 +86,7 @@ void AudioOutput::Stop()
 }
 
 // 音频输出回调函数
-void CALLBACK AudioOutput::WaveOutCallback(HWAVEOUT hwo, UINT uMsg,
-                                           DWORD_PTR instance, DWORD_PTR param1, DWORD_PTR param2)
+void CALLBACK AudioOutput::WaveOutCallback(HWAVEOUT hwo, UINT uMsg, DWORD_PTR instance, DWORD_PTR param1, DWORD_PTR param2)
 {
     auto *self = reinterpret_cast<AudioOutput *>(instance); // 获取AudioOutput实例指针
 
@@ -79,6 +94,8 @@ void CALLBACK AudioOutput::WaveOutCallback(HWAVEOUT hwo, UINT uMsg,
     if (uMsg == WOM_DONE)
     {
         auto *hdr = reinterpret_cast<WAVEHDR *>(param1); // 获取已完成的波形头
+
+        // std::cout << "[回调] 缓冲区回收: " << hdr << std::endl;
 
         // 将缓冲区返回到可用缓冲区队列
         std::lock_guard<std::mutex> lock(self->bufferMutex_); // 加锁，保证线程安全
@@ -108,6 +125,7 @@ void AudioOutput::ProcessingLoop()
 
         host_.ProcessMidiEvents();                       // 处理MIDI事件
         host_.ProcessAudio(nullptr, outputs, blockSize); // 处理音频，将结果写入输出缓冲区
+        // std::cout << "First sample value: " << outputs[0][0] << std::endl;
 
         // 将浮点音频数据转换为16-bit PCM格式
         auto *pcm = reinterpret_cast<short *>(hdr->lpData); // 获取缓冲区指针

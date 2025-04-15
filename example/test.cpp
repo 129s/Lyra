@@ -1,32 +1,45 @@
 #include "host.h"
 #include "audio.h"
+#include "sine_wave.h"
 #include <iostream>
-#include <atomic>
-#include <stdlib.h>
+#include <random>
 
 std::atomic<bool> running{true};
 
 int main()
 {
     VSTHost host;
+
+    host.UseProcessor(new SineWaveProcessor(44100, 512));
+
     AudioOutput audio(host);
+    if (!audio.Initialize())
+        return 1;
 
     audio.Start();
 
-    printf("1");
+    // 添加全局事件间隔控制
+    constexpr std::chrono::milliseconds NOTE_DURATION = std::chrono::milliseconds(125); // 音符持续时间
 
-    if (!host.LoadPlugin("L:\\CppProject\\Lyra\\plugin\\Pianoteq 6.dll") || !audio.Initialize())
-        return 1;
+    while (running)
+    {
+        // 生成随机音符
+        static std::mt19937 gen(std::random_device{}());
+        std::uniform_int_distribution<int> dist(36, 84);
+        int note = dist(gen);
 
-    printf("2");
+        // 发送Note On
+        host.SendMidiNote(note, 100, true);
+        std::cout << "Play note: " << note << "\n"; // 换用\n提升性能
 
-    std::cout << "Press Enter to play...";
+        // 等待音符持续时间
+        auto start = std::chrono::steady_clock::now();
+        while (std::chrono::steady_clock::now() - start < NOTE_DURATION)
+        {
+            continue;
+        }
 
-    host.SendMidiNote(60, 100, true);
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    host.SendMidiNote(60, 0, false);
-
-    running = false;
-    audio.Stop();
-    return 0;
+        // 发送Note Off
+        host.SendMidiNote(note, 0, false);
+    }
 }

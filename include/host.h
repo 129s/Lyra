@@ -1,11 +1,9 @@
 
 #pragma once
-#include <string>
-#include "vst2.x/aeffectx.h"
+#include "processor.h"
 #include "midi.h"
-#include <Windows.h>
-
-typedef AEffect *(VSTCALLBACK *VstMainFunc)(audioMasterCallback host);
+#include <memory>
+typedef unsigned char byte;
 
 class VSTHost
 {
@@ -13,23 +11,17 @@ public:
     VSTHost();
     ~VSTHost();
 
-    bool LoadPlugin(const std::string &dllPath);
-    void UnloadPlugin();
+    bool LoadPlugin(const std::string &dllPath);  // 原VST加载方式
+    void UseProcessor(AudioProcessor *processor); // 新：切换处理器
+
     void SendMidiNote(byte note, byte velocity, bool on);
     void ProcessMidiEvents();
     void ProcessAudio(float **inputs, float **outputs, int blockSize);
 
-    int GetSampleRate() const { return sampleRate_; }
-    int GetBlockSize() const { return blockSize_; }
+    int GetSampleRate() const { return processor_->GetSampleRate(); }
+    int GetBlockSize() const { return processor_->GetBlockSize(); }
 
 private:
-    static VSTHost *currentInstance_;
-    AEffect *plugin_;
-    HINSTANCE dllHandle_;
+    std::unique_ptr<AudioProcessor> processor_;
     MidiEventQueue midiQueue_;
-    int sampleRate_;
-    int blockSize_;
-
-    VstIntPtr HandleCallback(VstInt32 opcode, VstInt32 index, VstIntPtr value, void *ptr, float opt);
-    static VstIntPtr VSTCALLBACK HostCallback(AEffect *effect, VstInt32 opcode, VstInt32 index, VstIntPtr value, void *ptr, float opt);
 };

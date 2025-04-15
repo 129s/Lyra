@@ -22,7 +22,7 @@ private:
 
     VSTHost &host_;
     HWAVEOUT waveOut_;
-    WAVEHDR buffers_[4];
+    WAVEHDR buffers_[8];
     std::queue<WAVEHDR *> availableBuffers_;
     std::mutex bufferMutex_;
     std::thread processingThread_;
