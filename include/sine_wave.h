@@ -4,6 +4,24 @@
 #include <atomic>
 typedef unsigned char byte;
 
+enum EnvelopeStage
+{
+    kIdle,
+    kAttack,
+    kRelease
+};
+
+struct SineVoice
+{
+    double phase = 0.0;             // 独立相位
+    double frequency = 0.0;         // 当前频率
+    double amplitude = 0.0;         // 当前振幅
+    double release_start_amp = 0.0; // Release起始振幅
+    EnvelopeStage stage = kIdle;    // 包络状态
+    int envelope_pos = 0;           // 包络位置计数器
+    int note = -1;                  // 关联的MIDI音符编号（-1表示未使用）
+};
+
 class SineWaveProcessor : public AudioProcessor
 {
 public:
@@ -11,6 +29,7 @@ public:
 
     bool ProcessAudio(float *left, float *right, int numSamples) override;
     void ProcessMidiEvent(const VstMidiEvent &event) override;
+    void ActivateVoice(int idx, int note, int velocity);
     int GetSampleRate() const override { return sampleRate_; }
     int GetBlockSize() const override { return blockSize_; }
 
@@ -23,18 +42,11 @@ public:
 private:
     const int sampleRate_;
     const int blockSize_;
-    double phase_{0.0};
-    double frequency_{0.0};
-    double amplitude_{0.0};
-    double max_amplitude_{1.0};
+    const int max_voices_ = 8;      // 最大复音数
+    std::vector<SineVoice> voices_; // 音轨池
+    std::mutex voice_mutex_;        // 线程安全锁
 
-    // 包络相关
-    enum EnvelopeStage
-    {
-        kIdle,
-        kAttack,
-        kRelease
-    };
+    // 包络参数
     std::atomic<EnvelopeStage> envelope_stage_{kIdle};
     int attack_samples_ = 0;
     int release_samples_ = 0;

@@ -45,10 +45,11 @@ int main()
         note -= 4;
         std::cout << "Play note: " << note << " vel: " << velocity << "\n";
 
-        host.SendMidiNote(note, velocity, true);
+        host.SendMidiNote(note, velocity / 2, true);
+        // host.SendMidiNote(note - 12, velocity / 2, true);
         std::this_thread::sleep_for(duration);
         host.SendMidiNote(note, 0, false);
-        std::this_thread::sleep_for(std::chrono::milliseconds(25));
+        // host.SendMidiNote(note - 12, velocity / 2, false);
     }
 
     audio.Stop();

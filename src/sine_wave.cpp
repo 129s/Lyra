@@ -6,6 +6,7 @@
 SineWaveProcessor::SineWaveProcessor(int sampleRate, int blockSize)
     : sampleRate_(sampleRate), blockSize_(blockSize)
 {
+    voices_.resize(max_voices_); // 分配音轨
 }
 
 void SineWaveProcessor::ProcessMidiEvent(const VstMidiEvent &event)
@@ -14,57 +15,127 @@ void SineWaveProcessor::ProcessMidiEvent(const VstMidiEvent &event)
     const byte note = event.midiData[1];
     const byte velocity = event.midiData[2];
 
-    // Note On
+    std::lock_guard<std::mutex> lock(voice_mutex_);
+
     if (status == 0x90 && velocity > 0)
-    {
-        envelope_stage_ = kAttack;
-        envelope_pos_ = 0;
-        frequency_ = 440.0 * pow(2.0, (note - 69) / 12.0);
-        max_amplitude_ = velocity % 127 / 127.0f;
-    }
-    // Note Off
-    else if (status == 0x80 || (status == 0x90 && velocity == 0))
-    {
-        envelope_stage_ = kRelease;
-        envelope_pos_ = 0;
-    }
-}
-bool SineWaveProcessor::ProcessAudio(float *left, float *right, int numSamples)
-{
-    const double phaseIncrement = 2.0 * M_PI * frequency_ / sampleRate_;
-
-    for (int i = 0; i < numSamples; ++i)
-    {
-        // 处理包络状态
-        switch (envelope_stage_)
+    { // Note On
+        // 查找空闲音轨或最旧的Release音轨
+        auto oldest_release = -1;
+        int oldest_age = -1;
+        for (int i = 0; i < max_voices_; ++i)
         {
-        case kAttack:
-            amplitude_ = std::min(static_cast<double>(envelope_pos_) / attack_samples_, max_amplitude_);
-            if (++envelope_pos_ >= attack_samples_)
-                envelope_stage_ = kIdle;
-            break;
-
-        case kRelease:
-            amplitude_ = std::max(max_amplitude_ - static_cast<double>(envelope_pos_) / release_samples_, 0.0);
-            if (++envelope_pos_ >= release_samples_)
+            if (voices_[i].note == -1)
             {
-                envelope_stage_ = kIdle;
-                amplitude_ = 0.0;
+                // 找到空闲音轨
+                ActivateVoice(i, note, velocity);
+                return;
             }
-            break;
-
-        case kIdle:
-            break;
+            if (voices_[i].stage == kRelease)
+            {
+                const int age = voices_[i].envelope_pos;
+                if (age > oldest_age)
+                {
+                    oldest_age = age;
+                    oldest_release = i;
+                }
+            }
         }
 
-        // 生成正弦波
-        const double sample = amplitude_ * sin(phase_);
-        left[i] = sample;
-        right[i] = sample;
+        // 没有空闲音轨则抢占最旧的Release音轨
+        if (oldest_release != -1)
+        {
+            ActivateVoice(oldest_release, note, velocity);
+        }
+    }
+    else if (status == 0x80 || (status == 0x90 && velocity == 0))
+    { // Note Off
+        // 查找对应音符的音轨
+        for (auto &voice : voices_)
+        {
+            if (voice.note == note && voice.stage != kRelease)
+            {
+                voice.stage = kRelease;
+                voice.release_start_amp = voice.amplitude;
+                voice.envelope_pos = 0;
+            }
+        }
+    }
+}
 
-        phase_ += phaseIncrement;
-        if (phase_ >= 2.0 * M_PI)
-            phase_ -= 2.0 * M_PI;
+// 新增：激活音轨
+void SineWaveProcessor::ActivateVoice(int idx, int note, int velocity)
+{
+    auto &voice = voices_[idx];
+    voice.note = note;
+    voice.frequency = 440.0 * pow(2.0, (note - 69) / 12.0);
+    voice.phase = 0.0;
+    voice.amplitude = 0.0;
+    voice.stage = kAttack;
+    voice.envelope_pos = 0;
+}
+
+bool SineWaveProcessor::ProcessAudio(float *left, float *right, int numSamples)
+{
+    // 清零输出缓冲区
+    memset(left, 0, numSamples * sizeof(float));
+    memset(right, 0, numSamples * sizeof(float));
+
+    const double phase_inc = 2.0 * M_PI / sampleRate_;
+
+    std::lock_guard<std::mutex> lock(voice_mutex_);
+
+    for (auto &voice : voices_)
+    {
+        if (voice.note == -1)
+            continue; // 跳过未使用音轨
+
+        double *freq_ptr = &voice.frequency;
+        double *phase_ptr = &voice.phase;
+        double *amp_ptr = &voice.amplitude;
+
+        for (int i = 0; i < numSamples; ++i)
+        {
+            // 处理包络
+            switch (voice.stage)
+            {
+            case kAttack:
+            {
+                const double progress = static_cast<double>(voice.envelope_pos) / attack_samples_;
+                *amp_ptr = progress;
+                if (++voice.envelope_pos >= attack_samples_)
+                {
+                    voice.stage = kIdle;
+                }
+                break;
+            }
+            case kRelease:
+            {
+                const double progress = static_cast<double>(voice.envelope_pos) / release_samples_;
+                *amp_ptr = voice.release_start_amp * (1.0 - progress);
+                if (++voice.envelope_pos >= release_samples_)
+                {
+                    voice.stage = kIdle;
+                    *amp_ptr = 0.0;
+                    voice.note = -1; // 标记音轨为空闲
+                }
+                break;
+            }
+            case kIdle:
+                break;
+            }
+
+            // 生成波形
+            const double sample = *amp_ptr * sin(*phase_ptr);
+            left[i] += sample;
+            right[i] += sample;
+
+            // 更新相位
+            *phase_ptr += *freq_ptr * phase_inc;
+            if (*phase_ptr >= 2.0 * M_PI)
+            {
+                *phase_ptr -= 2.0 * M_PI;
+            }
+        }
     }
 
     return true;
