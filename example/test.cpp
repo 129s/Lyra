@@ -11,13 +11,17 @@ int main()
     VSTHost host;
     AudioOutput audio(host);
 
+    audio.Start();
+
+    printf("1");
+
     if (!host.LoadPlugin("L:\\CppProject\\Lyra\\plugin\\Pianoteq 6.dll") || !audio.Initialize())
         return 1;
 
-    audio.Start();
+    printf("2");
 
     std::cout << "Press Enter to play...";
-    std::cin.get();
+
     host.SendMidiNote(60, 100, true);
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
     host.SendMidiNote(60, 0, false);
