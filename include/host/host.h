@@ -1,9 +1,11 @@
 
 #pragma once
-#include "track.h"
-#include "core/mixer.h"
 #include "audio/audio_output.h"
+#include "core/track.h"
+#include "core/mixer.h"
+#include "core/audio_clock.h"
 #include "core/event_bus.h"
+#include "core/controller.h"
 
 class Host
 {
@@ -19,8 +21,9 @@ public:
     {
         auto &track = tracks_.emplace_back();
         track.BindPlayer(std::move(player));
-        controller_.ConnectTrackToPlayer(tracks_.size() - 1, track.GetPlayer());
+        mixer_.AddTrack(&track);
     }
+
     void RemoveTrack(int index);
 
 private:

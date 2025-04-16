@@ -7,10 +7,11 @@
 class Controller
 {
 public:
+    Controller();
+    ~Controller();
     void Update(double deltaTime); // 由音频回调驱动
 
     Timeline &GetTimeline() { return timeline_; }
-    void ConnectTrackToPlayer(int trackIdx, Player *player);
 
     // 全局传输控制
     void Play() { timeline_.SetPlayState(true); }

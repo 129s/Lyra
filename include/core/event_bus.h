@@ -14,17 +14,16 @@ class EventBus
 public:
     using EventHandler = std::function<void(const Event &)>;
 
-    // 订阅事件类型（模板化以支持多态）
     template <typename T>
     void Subscribe(EventHandler handler)
     {
-        subscribers_[typeid(T)].push_back(handler);
+        subscribers_[T::EventTypeID].push_back(handler);
     }
 
-    // 发布事件（支持多态派生类）
-    void Publish(const Event &event)
+    template <typename T>
+    void Publish(const T &event)
     {
-        auto type = typeid(event);
+        auto type = T::EventTypeID;
         if (subscribers_.find(type) != subscribers_.end())
         {
             for (auto &handler : subscribers_[type])
@@ -36,7 +35,6 @@ public:
 
     void QueueEvent(std::unique_ptr<Event> event)
     {
-        std::lock_guard lock(queueMutex_);
         eventQueue_.push(std::move(event));
     }
 
@@ -51,6 +49,6 @@ public:
     }
 
 private:
-    std::unordered_map<std::type_index, std::vector<EventHandler>> subscribers_;
+    std::unordered_map<uint32_t, std::vector<EventHandler>> subscribers_;
     std::queue<std::unique_ptr<Event>> eventQueue_;
 };
