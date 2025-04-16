@@ -8,28 +8,12 @@
 
 std::atomic<bool> running{true};
 
-// 和弦定义 (C大调4536进行)
-const std::vector<std::vector<int>> chord_progression = {
-    {65, 69, 72}, // F大三和弦 (IV)
-    {67, 71, 74}, // G大三和弦 (V)
-    {64, 67, 71}, // Em小三和弦 (III-)
-    {69, 72, 76}  // Am小三和弦 (VI-)
-};
-
 // 五声音阶音符 (C大调五声音阶: C4-D4-E4-G4-A4)
 const std::vector<int> pentatonic_scale = {60, 62, 64, 67, 69};
 
 // 随机数生成
 std::random_device rd;
 std::mt19937 gen(rd());
-
-void PlayChord(VSTHost &host, const std::vector<int> &notes, int velocity, bool on)
-{
-    for (int note : notes)
-    {
-        host.SendMidiNote(note, velocity, on);
-    }
-}
 
 int main()
 {
@@ -44,62 +28,38 @@ int main()
 
     audio.Start();
 
-    // 和弦循环参数
-    size_t current_chord = 0;
-    constexpr auto CHORD_DURATION = std::chrono::milliseconds(2000); // 每个和弦2秒
-
     // 旋律参数
-    constexpr auto MELODY_INTERVAL = std::chrono::milliseconds(250); // 每250ms触发一个音符
+    constexpr auto MELODY_INTERVAL = std::chrono::milliseconds(200);
+    constexpr auto MELODY_INTERVAL2 = std::chrono::milliseconds(100);
     std::uniform_int_distribution<int> melody_dist(0, pentatonic_scale.size() - 1);
 
-    auto last_chord_time = std::chrono::steady_clock::now();
-    auto last_melody_time = last_chord_time;
+    auto last_melody_time = std::chrono::steady_clock::now() - MELODY_INTERVAL;
 
-    while (running)
+    // while (running)
     {
         auto now = std::chrono::steady_clock::now();
 
-        // 处理和弦切换
-        if (now - last_chord_time >= CHORD_DURATION)
-        {
-            // 关闭旧和弦
-            PlayChord(host, chord_progression[current_chord], 0, false);
-
-            // 切换到下一个和弦
-            current_chord = (current_chord + 1) % chord_progression.size();
-
-            // 触发新和弦
-            PlayChord(host, chord_progression[current_chord], 20, true);
-
-            last_chord_time = now;
-            std::cout << "和弦切换至: " << (current_chord + 1) << std::endl;
-        }
-
         // 处理旋律
-        if (now - last_melody_time > MELODY_INTERVAL)
+        if (now - last_melody_time >= MELODY_INTERVAL)
         {
             // 随机选择五声音阶音符（提高一个八度）
             int note = pentatonic_scale[melody_dist(gen)] + 12;
+            int note3 = pentatonic_scale[melody_dist(gen)] + 12;
+            int note2 = pentatonic_scale[melody_dist(gen)];
 
-            // 用较高力度触发旋律音符
-            host.SendMidiNote(note, 30, true);
+            // 触发旋律音符
+            host.SendMidiNote(note, 40, true);
+            host.SendMidiNote(note2, 40, true);
+            host.SendMidiNote(note3, 40, true);
             std::cout << "旋律音符: " << note << std::endl;
 
-            // 设置1/4音符后释放
-            std::thread([MELODY_INTERVAL, &host, note]()
-                        {
-                std::this_thread::sleep_for(MELODY_INTERVAL);
-                host.SendMidiNote(note, 0, false); })
-                .detach();
+            std::this_thread::sleep_for(MELODY_INTERVAL2);
+            host.SendMidiNote(note3, 0, false);
+            host.SendMidiNote(note2, 0, false);
+            host.SendMidiNote(note, 0, false);
 
             last_melody_time = now;
         }
-    }
-
-    // 停止所有音符
-    for (const auto &chord : chord_progression)
-    {
-        PlayChord(host, chord, 0, false);
     }
 
     audio.Stop();
