@@ -15,16 +15,19 @@ public:
 
     EventBus &GetEventBus() { return *eventBus_; }
 
-    Track &CreateTrack(std::unique_ptr<Player> player);
+    void AddTrack(std::unique_ptr<Player> player)
+    {
+        auto &track = tracks_.emplace_back();
+        track.BindPlayer(std::move(player));
+        controller_.ConnectTrackToPlayer(tracks_.size() - 1, track.GetPlayer());
+    }
     void RemoveTrack(int index);
 
-    void PlayAll();
-    void StopAll();
-
 private:
+    Controller controller_;
     std::unique_ptr<EventBus> eventBus_;
     Mixer mixer_;
     std::unique_ptr<AudioOutput> audioOutput_;
     std::unique_ptr<AudioClock> audioClock_;
-    std::vector<std::unique_ptr<Track>> tracks_;
+    std::vector<Track> tracks_;
 };

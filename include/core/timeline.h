@@ -1,55 +1,29 @@
-
+// 文件路径：include/core/timeline.h
 #pragma once
-#include "event.h"
-#include "audio_clock.h"
-#include <queue>
-#include <functional>
+#include "midi_clip.h"
+#include <vector>
+
+struct TrackState
+{
+    std::vector<MidiClip> clips;
+    bool isMuted = false;
+    double trackOffset = 0.0; // 轨道时间偏移
+};
 
 class Timeline
 {
 public:
-    explicit Timeline(AudioClock &clock) : clock_(clock) {}
+    void AddClip(int trackIdx, MidiClip &&clip);
+    void ScheduleClip(int trackIdx, double startTime, double duration);
 
-    // 添加事件时记录全局时间戳
-    void ScheduleEvent(const MidiEvent &event, double timestamp);
+    // 获取当前激活的MIDI事件（全局时间→局部时间转换）
+    std::vector<MidiEvent> PollEvents(double currentTime);
 
-    // 根据全局时间轮询midi事件
-    std::vector<MidiEvent> PollMidiEvents();
-
-    // 在指定位置添加音符
-    void AddNote(double timestamp, const Note &note)
-    {
-        MidiEvent noteOn;
-        noteOn.type = MidiEvent::NoteOn;
-        noteOn.timestamp = timestamp; // 事件时间戳
-        noteOn.note = note.pitch;
-        noteOn.velocity = note.velocity;
-        midiEventQueue_.emplace(timestamp, noteOn);
-
-        MidiEvent noteOff;
-        noteOff.type = MidiEvent::NoteOff;
-        noteOff.timestamp = timestamp + note.duration; // NoteOff 时间戳
-        noteOff.note = note.pitch;
-        noteOff.velocity = 0; // NoteOff 通常力度为0
-        midiEventQueue_.emplace(noteOff.timestamp, noteOff);
-
-        lastEventTime_ = noteOff.timestamp; // 更新末尾时间
-    }
-
-    // 在末尾追加音符
-    void AppendNote(const Note &note)
-    {
-        AddNote(lastEventTime_, note);
-    }
-
-    // 播放/停止，依赖全局时间
-    void Play() { isPlaying_ = true; }
-    void Stop() { isPlaying_ = false; }
-    void Continue();
+    void SetGlobalTime(double time);
+    void SetPlayState(bool isPlaying);
 
 private:
-    AudioClock &clock_;
-    std::priority_queue<std::pair<double, MidiEvent>> midiEventQueue_; // 按时间戳排序
+    std::vector<TrackState> tracks_;
+    double globalTime_ = 0.0;
     bool isPlaying_ = false;
-    double lastEventTime_ = 0.0; // 记录最后一个事件的结束时间
 };

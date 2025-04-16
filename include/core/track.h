@@ -3,28 +3,19 @@
 #include "timeline.h"
 #include "player.h"
 #include <memory>
-
 class Track
 {
 public:
-    Track(std::unique_ptr<Player> player);
+    void AddClip(const MidiClip &clip);
+    void RenderAudio(float *left, float *right, int numSamples);
 
-    // 音频生成入口
-    void Track::RenderAudio(float *left, float *right, int numSamples);
-
-    // 时间轴控制
-    void Play() { timeline_.Play(); }
-    void Stop()
+    void BindPlayer(std::unique_ptr<Player> player)
     {
-        timeline_.Stop();
-        player_->Reset();
+        player_ = std::move(player);
     }
 
-    void ProcessMidi(std::vector<MidiEvent> &events);
-
-    Timeline &GetTimeline() { return timeline_; }
-
 private:
-    Timeline timeline_;
+    std::vector<MidiClip> clips_;
     std::unique_ptr<Player> player_;
+    double timeOffset_ = 0.0; // 轨道级时间偏移
 };
