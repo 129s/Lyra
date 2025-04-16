@@ -13,8 +13,7 @@ struct TrackState
 class Timeline
 {
 public:
-    void AddClip(int trackIdx, MidiClip &&clip);
-    void ScheduleClip(int trackIdx, double startTime, double duration);
+    void AddClip(int trackIdx, MidiClip &&clip, double startTime);
 
     // 获取当前激活的MIDI事件（全局时间→局部时间转换）
     std::vector<MidiEvent> PollEvents(double currentTime);
