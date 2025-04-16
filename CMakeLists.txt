@@ -29,14 +29,13 @@ endif()
 
 project(Lyra VERSION 0.1.0 LANGUAGES C CXX)
 
+
+aux_source_directory(src SOURCES)
 # 目标配置
 add_executable(${PROJECT_NAME} 
     # WIN32 # 禁用控制台窗口
     example/test.cpp
-    src/audio.cpp
-    src/host.cpp
-    src/midi.cpp
-    src/sine_wave.cpp
+    ${SOURCES}
 )
 
 target_include_directories(${PROJECT_NAME} PRIVATE include)
