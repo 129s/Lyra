@@ -20,7 +20,6 @@ public:
         player_->Reset();
     }
 
-    // MIDI处理管线
     void ProcessMidi(std::vector<MidiEvent> &events);
 
     Timeline &GetTimeline() { return timeline_; }

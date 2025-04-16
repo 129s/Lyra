@@ -11,7 +11,8 @@
 class AudioOutput
 {
 public:
-    double GetCurrentTime() const { return samplesRendered_ / static_cast<double>(sampleRate_); } // 全局时间戳（秒）
+    uint64_t GetSamplesRendered() const { return samplesRendered_; }
+    int GetSampleRate() const { return sampleRate_; }
 
     AudioOutput(Mixer &mixer, int sampleRate, int bufferSize)
         : mixer_(mixer), sampleRate_(sampleRate), bufferSize_(bufferSize) {}

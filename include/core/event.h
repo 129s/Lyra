@@ -9,6 +9,17 @@ public:
     double timestamp;           // 事件发生时间（秒）
 };
 
+struct SystemEvent : public Event
+{
+    enum Type
+    {
+        Play,
+        Stop
+    };
+    Type type;
+    double timestamp; // 关联全局时间
+};
+
 struct MidiEvent
 {
     enum Type
