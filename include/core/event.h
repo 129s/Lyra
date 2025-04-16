@@ -1,6 +1,13 @@
 #pragma once
 #include <cstdint>
 
+struct Note
+{
+    int pitch;       // 音高 (MIDI编号 0-127)
+    int velocity;    // 力度 (0-127)
+    double duration; // 时值（秒）
+};
+
 class Event
 {
 public:
@@ -20,7 +27,7 @@ struct SystemEvent : public Event
     double timestamp; // 关联全局时间
 };
 
-struct MidiEvent
+struct MidiEvent : public Event
 {
     enum Type
     {
@@ -29,6 +36,6 @@ struct MidiEvent
     };
 
     Type type;
-    int note;     // MIDI音符编号 (0-127)
+    int pitch;    // MIDI音高编号 (0-127)
     int velocity; // 力度 (0-127)
 };

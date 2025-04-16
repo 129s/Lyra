@@ -10,7 +10,7 @@ public:
     Track(std::unique_ptr<Player> player);
 
     // 音频生成入口
-    void RenderAudio(float *left, float *right, int numSamples);
+    void Track::RenderAudio(float *left, float *right, int numSamples);
 
     // 时间轴控制
     void Play() { timeline_.Play(); }

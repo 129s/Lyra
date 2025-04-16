@@ -1,5 +1,6 @@
 
 #pragma once
+#include "audio_output.h"
 
 class AudioClock
 {

@@ -2,10 +2,12 @@
 #pragma once
 #include <functional>
 #include <unordered_map>
+#include <queue>
 #include <vector>
+#include <memory>
 #include <typeinfo>
 #include <typeindex>
-#include "core/event.h" // 原有 Event 基类
+#include "event.h"
 
 class EventBus
 {
@@ -32,6 +34,23 @@ public:
         }
     }
 
+    void QueueEvent(std::unique_ptr<Event> event)
+    {
+        std::lock_guard lock(queueMutex_);
+        eventQueue_.push(std::move(event));
+    }
+
+    void DispatchEvents()
+    {
+        while (!eventQueue_.empty())
+        {
+            auto event = std::move(eventQueue_.front());
+            Publish(*event);
+            eventQueue_.pop();
+        }
+    }
+
 private:
     std::unordered_map<std::type_index, std::vector<EventHandler>> subscribers_;
+    std::queue<std::unique_ptr<Event>> eventQueue_;
 };
