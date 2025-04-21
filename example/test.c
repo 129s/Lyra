@@ -20,9 +20,13 @@ int main()
     mixer_add(ctx.mixer, &gen3);
 
     audio_play(&ctx);
-
-    printf("Playing... Press Enter to stop.\n");
-    getchar();
+    for (;;)
+    {
+        int x = getchar();
+        gen1.frequency = x;
+        gen2.frequency = x;
+        gen3.frequency = x;
+    }
     audio_cleanup(&ctx);
     return 0;
 }
