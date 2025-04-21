@@ -1,0 +1,83 @@
+#include "audio.h"
+#include <stdio.h>
+
+static void CALLBACK waveOutProc(HWAVEOUT, UINT, DWORD_PTR, DWORD_PTR, DWORD_PTR);
+static void fill_buffer(WAVEHDR *header, AudioContext *ctx);
+
+int audio_init(AudioContext *ctx, int sample_rate)
+{
+    WAVEFORMATEX format = {
+        .wFormatTag = WAVE_FORMAT_PCM,
+        .nChannels = NUM_CHANNELS, // 双声道
+        .nSamplesPerSec = sample_rate,
+        .wBitsPerSample = 16,
+        .nBlockAlign = NUM_CHANNELS * sizeof(short),
+        .nAvgBytesPerSec = sample_rate * NUM_CHANNELS * sizeof(short),
+    };
+
+    ctx->mixer = mixer_create();
+    ctx->sample_rate = sample_rate;
+
+    return waveOutOpen(&ctx->hWaveOut, WAVE_MAPPER, &format, (DWORD_PTR)waveOutProc, (DWORD_PTR)ctx, CALLBACK_FUNCTION);
+}
+
+void audio_play(AudioContext *ctx)
+{
+    for (int i = 0; i < NUM_BUFFERS; ++i)
+    {
+        ctx->buffers[i].lpData = (LPSTR)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, BUFFER_SIZE * NUM_CHANNELS * sizeof(short));
+        ctx->buffers[i].dwBufferLength = BUFFER_SIZE * NUM_CHANNELS * sizeof(short);
+        waveOutPrepareHeader(ctx->hWaveOut, &ctx->buffers[i], sizeof(WAVEHDR));
+        fill_buffer(&ctx->buffers[i], ctx);
+        MMRESULT writeResult = waveOutWrite(ctx->hWaveOut, &ctx->buffers[i], sizeof(WAVEHDR));
+        if (writeResult != MMSYSERR_NOERROR)
+        {
+            char errorText[MAXERRORLENGTH];
+            waveOutGetErrorText(writeResult, errorText, MAXERRORLENGTH);
+            fprintf(stderr, "[ERROR] waveOutWrite failed: %d\n", writeResult);
+            return;
+        }
+        else
+        {
+            printf("[DEBUG] Buffer %d submitted successfully.\n", i);
+        }
+    }
+}
+
+void audio_cleanup(AudioContext *ctx)
+{
+    mixer_destroy(ctx->mixer);
+    waveOutReset(ctx->hWaveOut);
+    for (int i = 0; i < NUM_BUFFERS; ++i)
+    {
+        waveOutUnprepareHeader(ctx->hWaveOut, &ctx->buffers[i], sizeof(WAVEHDR));
+        HeapFree(GetProcessHeap(), 0, ctx->buffers[i].lpData);
+    }
+    waveOutClose(ctx->hWaveOut);
+}
+
+static void fill_buffer(WAVEHDR *header, AudioContext *ctx)
+{
+    short *samples = (short *)header->lpData;
+    for (int i = 0; i < BUFFER_SIZE; ++i)
+    {
+        short sample = mixer_process(ctx->mixer, ctx->sample_rate);
+        samples[i * NUM_CHANNELS] = sample;
+        samples[i * NUM_CHANNELS + 1] = sample;
+    }
+    header->dwBufferLength = BUFFER_SIZE * NUM_CHANNELS * sizeof(short);
+}
+
+static void CALLBACK waveOutProc(
+    HWAVEOUT hWave, UINT msg,
+    DWORD_PTR instance, DWORD_PTR param1, DWORD_PTR param2)
+{
+    if (msg == WOM_DONE)
+    {
+        WAVEHDR *header = (WAVEHDR *)param1;
+        AudioContext *ctx = (AudioContext *)instance;
+
+        fill_buffer(header, ctx);
+        waveOutWrite(hWave, header, sizeof(WAVEHDR));
+    }
+}

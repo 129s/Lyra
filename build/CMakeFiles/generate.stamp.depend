@@ -1,0 +1,27 @@
+# CMake generation dependency list for this directory.
+L:/CppProject/MiniSynth/CMakeLists.txt
+L:/CppProject/MiniSynth/build/CMakeFiles/4.0.0-rc1/CMakeCCompiler.cmake
+L:/CppProject/MiniSynth/build/CMakeFiles/4.0.0-rc1/CMakeRCCompiler.cmake
+L:/CppProject/MiniSynth/build/CMakeFiles/4.0.0-rc1/CMakeSystem.cmake
+L:/Dev/cmake/share/cmake-4.0/Modules/CMakeCInformation.cmake
+L:/Dev/cmake/share/cmake-4.0/Modules/CMakeCommonLanguageInclude.cmake
+L:/Dev/cmake/share/cmake-4.0/Modules/CMakeGenericSystem.cmake
+L:/Dev/cmake/share/cmake-4.0/Modules/CMakeInitializeConfigs.cmake
+L:/Dev/cmake/share/cmake-4.0/Modules/CMakeLanguageInformation.cmake
+L:/Dev/cmake/share/cmake-4.0/Modules/CMakeRCInformation.cmake
+L:/Dev/cmake/share/cmake-4.0/Modules/CMakeSystemSpecificInformation.cmake
+L:/Dev/cmake/share/cmake-4.0/Modules/CMakeSystemSpecificInitialize.cmake
+L:/Dev/cmake/share/cmake-4.0/Modules/Compiler/CMakeCommonCompilerMacros.cmake
+L:/Dev/cmake/share/cmake-4.0/Modules/Compiler/MSVC-C.cmake
+L:/Dev/cmake/share/cmake-4.0/Modules/Compiler/MSVC.cmake
+L:/Dev/cmake/share/cmake-4.0/Modules/Internal/CMakeCLinkerInformation.cmake
+L:/Dev/cmake/share/cmake-4.0/Modules/Internal/CMakeCommonLinkerInformation.cmake
+L:/Dev/cmake/share/cmake-4.0/Modules/Linker/MSVC-C.cmake
+L:/Dev/cmake/share/cmake-4.0/Modules/Linker/MSVC.cmake
+L:/Dev/cmake/share/cmake-4.0/Modules/Platform/Linker/Windows-MSVC-C.cmake
+L:/Dev/cmake/share/cmake-4.0/Modules/Platform/Linker/Windows-MSVC.cmake
+L:/Dev/cmake/share/cmake-4.0/Modules/Platform/Windows-Initialize.cmake
+L:/Dev/cmake/share/cmake-4.0/Modules/Platform/Windows-MSVC-C.cmake
+L:/Dev/cmake/share/cmake-4.0/Modules/Platform/Windows-MSVC.cmake
+L:/Dev/cmake/share/cmake-4.0/Modules/Platform/Windows.cmake
+L:/Dev/cmake/share/cmake-4.0/Modules/Platform/WindowsPaths.cmake
