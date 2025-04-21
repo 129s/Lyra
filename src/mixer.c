@@ -27,6 +27,18 @@ void mixer_add(Mixer *mixer, WaveGenerator *gen)
     mixer->generators[mixer->count++] = gen;
 }
 
+void mixer_remove(Mixer *mixer, WaveGenerator *gen)
+{
+    for (int i = 0; i < mixer->count; i++)
+    {
+        if (mixer->generators[i] == gen)
+        {
+            mixer->generators[i] = mixer->generators[--mixer->count];
+            break;
+        }
+    }
+}
+
 short mixer_process(Mixer *mixer, double sample_rate)
 {
     float mixed = 0.0f;

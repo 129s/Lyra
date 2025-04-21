@@ -1,3 +1,0 @@
-L:\Dev\cmake\bin\cmake.exe -E rm -f CMakeFiles\MiniSynth.dir/objects.a
-C:\PROGRA~1\MinGW\bin\ar.exe qc CMakeFiles\MiniSynth.dir/objects.a @CMakeFiles\MiniSynth.dir\objects1.rsp
-C:\PROGRA~1\MinGW\bin\gcc.exe -g -Wl,--whole-archive CMakeFiles\MiniSynth.dir/objects.a -Wl,--no-whole-archive -o MiniSynth.exe -Wl,--out-implib,libMiniSynth.dll.a -Wl,--major-image-version,0,--minor-image-version,0 @CMakeFiles\MiniSynth.dir\linkLibs.rsp

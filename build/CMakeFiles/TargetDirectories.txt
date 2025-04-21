@@ -1,3 +1,0 @@
-L:/CppProject/Lyra/build/CMakeFiles/MiniSynth.dir
-L:/CppProject/Lyra/build/CMakeFiles/edit_cache.dir
-L:/CppProject/Lyra/build/CMakeFiles/rebuild_cache.dir

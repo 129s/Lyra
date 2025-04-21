@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.15)
-project(MiniSynth C)
+project(Lyra C)
 
 # 优化编译体积
 set(CMAKE_C_STANDARD 11)

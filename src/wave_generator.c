@@ -40,3 +40,10 @@ short wave_next(WaveGenerator *gen, double sample_rate)
 
     return sample;
 }
+
+void wave_trigger(WaveGenerator *gen, bool on)
+{
+    gen->active = on;
+    if (!on)
+        gen->phase = 0.0; // 停止时重置相位
+}

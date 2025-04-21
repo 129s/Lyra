@@ -1,7 +1,0 @@
-{
-	"InstallScripts" : 
-	[
-		"L:/CppProject/Lyra/build/cmake_install.cmake"
-	],
-	"Parallel" : false
-}

@@ -8,7 +8,7 @@
             "name": "(gdb) Launch",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/build/Debug/MiniSynth.exe",
+            "program": "${workspaceFolder}/build/Lyra.exe",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${fileDirname}",
