@@ -58,9 +58,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
             keyboard_close();
             break; // 确保跳出循环
         }
-
-        // 更新GUI显示
-        gui_update(gui, &synth);
     }
 
     return 0;

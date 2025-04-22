@@ -44,44 +44,8 @@ GUI *gui_create(HINSTANCE hInstance, Synth *synth)
     SendDlgItemMessage(gui->hWnd, ID_WAVE_COMBO, CB_ADDSTRING, 0, (LPARAM) "Sawtooth");
     SendDlgItemMessage(gui->hWnd, ID_WAVE_COMBO, CB_ADDSTRING, 0, (LPARAM) "Triangle");
 
-    // 初始化双缓冲
-    GetClientRect(gui->hWnd, &gui->clientRect);
-    HDC hdc = GetDC(gui->hWnd);
-    gui->hdcBuffer = CreateCompatibleDC(hdc);
-    gui->hbmBuffer = CreateCompatibleBitmap(hdc,
-                                            gui->clientRect.right, gui->clientRect.bottom);
-    SelectObject(gui->hdcBuffer, gui->hbmBuffer);
-    ReleaseDC(gui->hWnd, hdc);
-
     ShowWindow(gui->hWnd, SW_SHOW);
     return gui;
-}
-
-void gui_update(GUI *gui, const Synth *synth)
-{
-    // 绘制到缓冲DC
-    FillRect(gui->hdcBuffer, &gui->clientRect, (HBRUSH)(COLOR_WINDOW));
-
-    // 绘制活动音符
-    char text[64];
-    int y = 60;
-    for (int i = 0; i < MAX_VOICES; i++)
-    {
-        if (synth->voices[i].active)
-        {
-            sprintf(text, "Note %d: %dHz",
-                    synth->voices[i].note,
-                    (int)synth->voices[i].frequency);
-            TextOut(gui->hdcBuffer, 20, y, text, strlen(text));
-            y += 20;
-        }
-    }
-
-    // 复制到窗口DC
-    HDC hdc = GetDC(gui->hWnd);
-    BitBlt(hdc, 0, 0, gui->clientRect.right, gui->clientRect.bottom,
-           gui->hdcBuffer, 0, 0, SRCCOPY);
-    ReleaseDC(gui->hWnd, hdc);
 }
 
 void gui_destroy(GUI *gui)
@@ -102,6 +66,23 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
         gui = ((CREATESTRUCT *)lParam)->lpCreateParams;
         SetWindowLongPtr(hWnd, GWLP_USERDATA, (LONG_PTR)gui);
         break;
+
+    case WM_PAINT:
+    {
+        PAINTSTRUCT ps;
+        HDC hdc = BeginPaint(hWnd, &ps);
+        EndPaint(hWnd, &ps);
+        break;
+    }
+
+    case WM_CLOSE:
+        DestroyWindow(hWnd);
+        break;
+
+    case WM_DESTROY:
+        printf("QUIT");
+        PostQuitMessage(0);
+        return 0;
 
     case WM_COMMAND:
         if (LOWORD(wParam) == ID_WAVE_COMBO)
@@ -132,20 +113,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
             }
         }
         break;
-
-    case WM_PAINT:
-        if (gui)
-            gui_update(gui, gui->synth);
-        break;
-
-    case WM_CLOSE:
-        DestroyWindow(hWnd);
-        break;
-
-    case WM_DESTROY:
-        printf("QUIT");
-        PostQuitMessage(0);
-        return 0;
     }
     return DefWindowProc(hWnd, msg, wParam, lParam);
 }
