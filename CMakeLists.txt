@@ -6,7 +6,7 @@ set(CMAKE_C_STANDARD 11)
 
 # 目标配置
 aux_source_directory(src SOURCES)
-add_executable(${PROJECT_NAME} 
+add_executable(${PROJECT_NAME} WIN32
     example/test.c
     ${SOURCES}
 )

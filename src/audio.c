@@ -35,12 +35,17 @@ void audio_play(AudioContext *ctx)
         {
             char errorText[MAXERRORLENGTH];
             waveOutGetErrorText(writeResult, errorText, MAXERRORLENGTH);
-            fprintf(stderr, "[ERROR] waveOutWrite failed: %d\n", writeResult);
+
+            char errorMsg[128];
+            sprintf(errorMsg, "Audio error: %s", errorText);
+            MessageBox(NULL, errorMsg, "Audio Error", MB_ICONERROR);
             return;
         }
         else
         {
-            printf("[DEBUG] Buffer %d submitted successfully.\n", i);
+            char debugMsg[64];
+            sprintf(debugMsg, "[DEBUG] Buffer %d submitted successfully.\n", i);
+            OutputDebugString(debugMsg);
         }
     }
 }

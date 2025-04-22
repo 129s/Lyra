@@ -59,9 +59,8 @@ static const struct
 #define KEY_MAP_SIZE (sizeof(key_map) / sizeof(key_map[0]))
 
 // 全局状态
-static int8_t octave_offset = 0;         // 当前八度偏移（±2个八度）
+static int8_t octave_offset = 0;         // 当前八度偏移
 static uint8_t sustain_notes[128] = {0}; // 延音状态跟踪
-
 static LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
 {
     if (nCode == HC_ACTION)
@@ -87,29 +86,37 @@ static LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lP
                     break;
                 }
 
-                // 计算实际音符（含八度偏移）
+                // 计算实际音符
                 int actual_note = note + octave_offset;
                 if (actual_note < 0 || actual_note > 127)
                     break;
 
-                // 生成MIDI事件
+                // 处理按键事件
                 if (wParam == WM_KEYDOWN)
                 {
-                    status = 0x90;
-                    sustain_notes[actual_note] = 1;
+                    // 仅在音符未激活时发送 Note On
+                    if (sustain_notes[actual_note] == 0)
+                    {
+                        uint8_t msg[] = {0x90, (uint8_t)actual_note, 0x7F};
+                        sustain_notes[actual_note] = 1; // 标记为激活
+                        if (midi_callback)
+                        {
+                            midi_callback(msg[0], msg[1], msg[2], user_data);
+                        }
+                    }
                 }
                 else
-                {
-                    status = 0x80;
-                    sustain_notes[actual_note] = 0;
-                }
-
-                uint8_t msg[] = {status, (uint8_t)actual_note,
-                                 (status == 0x90) ? 0x7F : 0x00};
-
-                if (midi_callback)
-                {
-                    midi_callback(msg[0], msg[1], msg[2], user_data);
+                { // WM_KEYUP
+                    // 仅在音符已激活时发送 Note Off
+                    if (sustain_notes[actual_note] == 1)
+                    {
+                        uint8_t msg[] = {0x80, (uint8_t)actual_note, 0x00};
+                        sustain_notes[actual_note] = 0; // 标记为未激活
+                        if (midi_callback)
+                        {
+                            midi_callback(msg[0], msg[1], msg[2], user_data);
+                        }
+                    }
                 }
                 break;
             }

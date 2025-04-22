@@ -15,10 +15,8 @@ void synth_init(Synth *synth)
         synth->voices[i] = (Voice){0};
     }
     synth->default_wave = WAVE_SQUARE;
-    synth->default_amp = 19684;
+    synth->default_amp = 32767 / MAX_VOICES;
     synth->master_vol = 1.0f;
-    synth->active_voices = 0;
-    synth->auto_volume = true;
 }
 
 void synth_midi_in(Synth *synth, const uint8_t *msg)
@@ -30,61 +28,41 @@ void synth_midi_in(Synth *synth, const uint8_t *msg)
     switch (status)
     {
     case 0x90: // Note On
-        if (vel > 0)
+        if (vel == 0)
+        { // 处理力度为0的Note On视为Note Off
+            for (int j = 0; j < MAX_VOICES; j++)
+            {
+                Voice *v = &synth->voices[j];
+                if (v->active && v->note == note)
+                {
+                    v->active = false;
+                }
+            }
+            break;
+        }
+        // 寻找空闲的语音通道
+        for (int j = 0; j < MAX_VOICES; j++)
         {
-            // 查找现有相同音符的voice或空闲voice
-            int target = -1;
-            for (int i = 0; i < MAX_VOICES; i++)
+            Voice *v = &synth->voices[j];
+            if (!v->active)
             {
-                if (synth->voices[i].note == note && synth->voices[i].active)
-                {
-                    target = i;
-                    break;
-                }
+                v->active = true;
+                v->note = note;
+                v->frequency = midi_to_freq(note);
+                v->amplitude = (int)((vel / 127.0f) * synth->default_amp);
+                v->wave_type = synth->default_wave;
+                break;
             }
-            if (target == -1)
-            {
-                // 寻找空闲voice
-                for (int i = 0; i < MAX_VOICES; i++)
-                {
-                    if (!synth->voices[i].active)
-                    {
-                        target = i;
-                        break;
-                    }
-                }
-            }
-            if (target == -1)
-            {
-                // 随机替换
-                target = rand() % MAX_VOICES;
-                if (synth->voices[target].active)
-                    synth->active_voices--;
-            }
-
-            // 保留相位（如果复用现有voice）
-            double phase = (target != -1 && synth->voices[target].active) ? synth->voices[target].phase : 0.0;
-
-            synth->voices[target] = (Voice){
-                .active = true,
-                .frequency = midi_to_freq(note),
-                .amplitude = (vel * synth->default_amp) / 127,
-                .wave_type = synth->default_wave,
-                .phase = phase, // 保留相位
-                .note = note};
-
-            if (!synth->voices[target].active)
-                synth->active_voices++;
         }
         break;
 
     case 0x80: // Note Off
-        for (int i = 0; i < MAX_VOICES; i++)
+        for (int j = 0; j < MAX_VOICES; j++)
         {
-            if (synth->voices[i].note == note)
+            Voice *v = &synth->voices[j];
+            if (v->active && v->note == note)
             {
-                synth->voices[i].active = false;
-                synth->active_voices--;
+                v->active = false;
             }
         }
         break;
@@ -102,13 +80,7 @@ short synth_process(Synth *synth, double sr)
         if (!v->active)
             continue;
 
-        // 根据 auto_volume 调整振幅
         float amp = v->amplitude;
-        if (synth->auto_volume && synth->active_voices > 0)
-        {
-            amp /= synth->active_voices;
-            printf("%f\n", amp);
-        }
 
         // 波形生成逻辑
         double pos = v->phase;
@@ -135,15 +107,12 @@ short synth_process(Synth *synth, double sr)
             break;
         }
         }
-
         mix += sample;
-        // 相位更新
         v->phase += v->frequency * dt;
         if (v->phase >= 1.0)
             v->phase -= 1.0;
     }
 
-    // 削波输出
-    mix = fmaxf(fminf(mix * synth->master_vol, 32767), -32768);
-    return (short)mix;
+    // 削波处理
+    return (short)fmaxf(fminf(mix * synth->master_vol, 32767), -32768);
 }
