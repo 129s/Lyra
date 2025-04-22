@@ -109,6 +109,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
                         gui->synth->wave_type = WAVE_TRIANGLE;
                         break;
                     }
+                    // 选择后焦点返回主窗口
+                    SetFocus(gui->hWnd);
                 }
             }
         }
