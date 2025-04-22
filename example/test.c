@@ -28,37 +28,27 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     synth_init(&synth);
     mixer_add(ctx.mixer, &synth);
 
-    // 初始化键盘和GUI
+    // 初始化键盘
     keyboard_init(midi_handler, &synth);
+
+    // 初始化GUI
     GUI *gui = gui_create(hInstance, &synth);
-    synth.wave_type = WAVE_SQUARE;
 
     // 开始播放音频
     audio_play(&ctx);
 
     // 主消息循环
     MSG msg;
-    BOOL bRet;
-    while ((bRet = GetMessage(&msg, NULL, 0, 0)) != 0)
+    while (GetMessage(&msg, NULL, 0, 0) > 0)
     {
-        if (bRet == -1)
-        {
-            // 错误处理（例如日志记录）
-            break;
-        }
-
         TranslateMessage(&msg);
         DispatchMessage(&msg);
-
-        // 窗口销毁后立即退出循环并清理资源
-        if (!IsWindow(gui->hWnd))
-        {
-            audio_cleanup(&ctx);
-            gui_destroy(gui);
-            keyboard_close();
-            break; // 确保跳出循环
-        }
     }
+
+    // 清理资源
+    audio_cleanup(&ctx);
+    gui_destroy(gui);
+    keyboard_close();
 
     return 0;
 }
