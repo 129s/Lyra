@@ -1,6 +1,15 @@
+
 #include <stdio.h>
 #include "audio.h"
 #include "synth.h"
+#include "keyboard.h"
+
+static void midi_handler(uint8_t status, uint8_t data1, uint8_t data2, void *user)
+{
+    Synth *synth = (Synth *)user;
+    uint8_t msg[] = {status, data1, data2};
+    synth_midi_in(synth, msg);
+}
 
 int main()
 {
@@ -16,18 +25,14 @@ int main()
     synth.default_wave = WAVE_SQUARE;
     mixer_add(ctx.mixer, &synth);
 
-    // 演奏C大调和弦
-    uint8_t chord[] = {60, 64, 67}; // C4, E4, G4
-    for (int i = 0; i < 3; i++)
-    {
-        uint8_t msg[] = {0x90, chord[i], 0x7F};
-        synth_midi_in(&synth, msg);
-    }
+    // 初始化键盘输入
+    keyboard_init(midi_handler, &synth);
 
     audio_play(&ctx);
-    printf("Playing chord... Press Enter to stop.\n");
+    printf("Playing... Use keyboard (A-J,W,E,T,Y,U) to play notes. Press Enter to exit.\n");
     getchar();
 
+    keyboard_close();
     audio_cleanup(&ctx);
     return 0;
 }
