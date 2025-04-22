@@ -1,5 +1,6 @@
-#include "audio.h"
 #include <stdio.h>
+#include "audio.h"
+#include "synth.h"
 
 static void CALLBACK waveOutProc(HWAVEOUT, UINT, DWORD_PTR, DWORD_PTR, DWORD_PTR);
 static void fill_buffer(WAVEHDR *header, AudioContext *ctx);
@@ -46,7 +47,7 @@ void audio_play(AudioContext *ctx)
 
 void audio_cleanup(AudioContext *ctx)
 {
-    mixer_destroy(ctx->mixer);
+    mixer_free(ctx->mixer);
     waveOutReset(ctx->hWaveOut);
     for (int i = 0; i < NUM_BUFFERS; ++i)
     {
@@ -62,10 +63,9 @@ static void fill_buffer(WAVEHDR *header, AudioContext *ctx)
     for (int i = 0; i < BUFFER_SIZE; ++i)
     {
         short sample = mixer_process(ctx->mixer, ctx->sample_rate);
-        samples[i * NUM_CHANNELS] = sample;
-        samples[i * NUM_CHANNELS + 1] = sample;
+        samples[i * 2] = sample;     // 左声道
+        samples[i * 2 + 1] = sample; // 右声道
     }
-    header->dwBufferLength = BUFFER_SIZE * NUM_CHANNELS * sizeof(short);
 }
 
 static void CALLBACK waveOutProc(

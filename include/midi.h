@@ -1,9 +1,10 @@
-// include/midi.h
+
 #pragma once
 #include <windows.h>
-#include "mixer.h"
+#include <stdint.h>
 
-typedef void (*MIDI_Callback)(Mixer *, BYTE, BYTE, BYTE);
+typedef void (*MidiCallback)(uint8_t status, uint8_t data1, uint8_t data2, void *user);
 
-int midi_init(MIDI_Callback callback, Mixer *mixer);
+// MIDI输入设备初始化
+int midi_init(MidiCallback callback, void *user);
 void midi_close();

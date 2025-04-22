@@ -1,16 +1,15 @@
 #pragma once
-#include "wave_generator.h"
+#include "synth.h"
 
 typedef struct Mixer
 {
-    WaveGenerator **generators;
+    Synth **synths;
     int count;
     int capacity;
-    float master_volume;
+    float master_vol;
 } Mixer;
 
 Mixer *mixer_create();
-void mixer_destroy(Mixer *mixer);
-void mixer_add(Mixer *mixer, WaveGenerator *gen);
-void mixer_remove(Mixer *mixer, WaveGenerator *gen);
-short mixer_process(Mixer *mixer, double sample_rate);
+void mixer_free(Mixer *mixer);
+void mixer_add(Mixer *mixer, Synth *synth);
+short mixer_process(Mixer *mixer, double sr);
