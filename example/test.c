@@ -13,7 +13,7 @@ int main()
 
     Synth synth;
     synth_init(&synth);
-    synth.default_wave = WAVE_SAWTOOTH;
+    synth.default_wave = WAVE_SQUARE;
     mixer_add(ctx.mixer, &synth);
 
     // 演奏C大调和弦

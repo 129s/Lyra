@@ -1,5 +1,6 @@
 #include "mixer.h"
 #include <stdlib.h>
+#include <math.h>
 
 Mixer *mixer_create()
 {

@@ -47,8 +47,11 @@ void audio_play(AudioContext *ctx)
 
 void audio_cleanup(AudioContext *ctx)
 {
-    mixer_free(ctx->mixer);
+    // 停止播放并取消所有未完成的缓冲区
     waveOutReset(ctx->hWaveOut);
+    // 释放 Mixer 及其 Synths
+    mixer_free(ctx->mixer);
+    // 释放缓冲区内存
     for (int i = 0; i < NUM_BUFFERS; ++i)
     {
         waveOutUnprepareHeader(ctx->hWaveOut, &ctx->buffers[i], sizeof(WAVEHDR));

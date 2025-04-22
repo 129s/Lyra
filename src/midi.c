@@ -1,4 +1,4 @@
-// src/midi.c
+
 #include "midi.h"
 #include <stdio.h>
 

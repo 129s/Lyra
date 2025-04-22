@@ -1,6 +1,7 @@
 #include "synth.h"
 #include <math.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 static float midi_to_freq(uint8_t note)
 {
@@ -13,9 +14,11 @@ void synth_init(Synth *synth)
     {
         synth->voices[i] = (Voice){0};
     }
-    synth->default_wave = WAVE_SINE;
+    synth->default_wave = WAVE_SQUARE;
     synth->default_amp = 30000;
     synth->master_vol = 1.0f;
+    synth->active_voices = 0;
+    synth->auto_volume = true;
 }
 
 void synth_midi_in(Synth *synth, const uint8_t *msg)
@@ -44,6 +47,11 @@ void synth_midi_in(Synth *synth, const uint8_t *msg)
             if (target == -1)
                 target = rand() % MAX_VOICES; // 随机置换
 
+            if (!synth->voices[target].active)
+            {
+                synth->active_voices++; // 新增语音时增加计数器
+            }
+
             synth->voices[target] = (Voice){
                 .active = true,
                 .frequency = midi_to_freq(note),
@@ -60,6 +68,7 @@ void synth_midi_in(Synth *synth, const uint8_t *msg)
             if (synth->voices[i].note == note)
             {
                 synth->voices[i].active = false;
+                synth->active_voices--;
             }
         }
         break;
@@ -77,38 +86,47 @@ short synth_process(Synth *synth, double sr)
         if (!v->active)
             continue;
 
+        // 根据 auto_volume 调整振幅
+        float amp = v->amplitude;
+        if (synth->auto_volume && synth->active_voices > 0)
+        {
+            amp /= synth->active_voices;
+        }
+
+        // 波形生成逻辑
         double pos = v->phase;
         short sample = 0;
 
         switch (v->wave_type)
         {
         case WAVE_SINE:
-            sample = v->amplitude * sin(2 * M_PI * pos);
+            sample = amp * sin(2 * M_PI * pos);
             break;
 
         case WAVE_SQUARE:
-            sample = (fmod(pos, 1.0) < 0.5) ? v->amplitude : -v->amplitude;
+            sample = (fmod(pos, 1.0) < 0.5) ? amp : -amp;
             break;
 
         case WAVE_SAWTOOTH:
-            sample = 2 * v->amplitude * (pos - floor(pos) - 0.5);
+            sample = 2 * amp * (pos - floor(pos) - 0.5);
             break;
 
         case WAVE_TRIANGLE:
         {
             double x = 2 * fmod(pos, 1.0);
-            sample = v->amplitude * (x < 1.0 ? 2 * x - 1 : 3 - 2 * x);
+            sample = amp * (x < 1.0 ? 2 * x - 1 : 3 - 2 * x);
             break;
         }
         }
 
         mix += sample;
+        // 相位更新
         v->phase += v->frequency * dt;
         if (v->phase >= 1.0)
             v->phase -= 1.0;
     }
 
-    // 限制输出并应用主音量
+    // 削波输出
     mix = fmaxf(fminf(mix * synth->master_vol, 32767), -32768);
     return (short)mix;
 }

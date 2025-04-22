@@ -28,6 +28,8 @@ typedef struct
     WaveType default_wave;
     int default_amp;
     float master_vol;
+    int active_voices;
+    bool auto_volume;
 } Synth;
 
 // MIDI处理接口
