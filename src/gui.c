@@ -149,6 +149,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
         break;
 
     case WM_DESTROY:
+        printf("QUIT");
         PostQuitMessage(0);
         return 0;
     }
