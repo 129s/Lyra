@@ -7,7 +7,7 @@ GUI *gui_create(HINSTANCE hInstance, Synth *synth)
 {
     GUI *gui = malloc(sizeof(GUI));
     gui->synth = synth; // 关联合成器
-    gui->wave_sel_index = 0;
+    gui->wave_sel_index = synth->wave_type;
     const char CLASS_NAME[] = "LyraWindowClass";
 
     WNDCLASS wc = {0};
@@ -43,6 +43,7 @@ GUI *gui_create(HINSTANCE hInstance, Synth *synth)
     SendDlgItemMessage(gui->hWnd, ID_WAVE_COMBO, CB_ADDSTRING, 0, (LPARAM) "Square");
     SendDlgItemMessage(gui->hWnd, ID_WAVE_COMBO, CB_ADDSTRING, 0, (LPARAM) "Sawtooth");
     SendDlgItemMessage(gui->hWnd, ID_WAVE_COMBO, CB_ADDSTRING, 0, (LPARAM) "Triangle");
+    SendDlgItemMessage(gui->hWnd, ID_WAVE_COMBO, CB_SETCURSEL, gui->wave_sel_index, 0);
 
     ShowWindow(gui->hWnd, SW_SHOW);
     return gui;
