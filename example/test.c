@@ -31,7 +31,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     // 初始化键盘和GUI
     keyboard_init(midi_handler, &synth);
     GUI *gui = gui_create(hInstance, &synth);
-    synth.default_wave = WAVE_SQUARE;
+    synth.wave_type = WAVE_SQUARE;
 
     // 开始播放音频
     audio_play(&ctx);
@@ -46,14 +46,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
             // 错误处理（例如日志记录）
             break;
         }
-
-        // 处理对话框消息
-        if (IsWindow(gui->hWnd) && IsDialogMessage(gui->hWnd, &msg))
-            continue;
-
-        // 处理按键退出
-        if (msg.message == WM_KEYDOWN && msg.wParam == VK_ESCAPE)
-            DestroyWindow(gui->hWnd);
 
         TranslateMessage(&msg);
         DispatchMessage(&msg);

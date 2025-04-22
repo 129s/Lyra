@@ -28,9 +28,9 @@ GUI *gui_create(HINSTANCE hInstance, Synth *synth)
     gui->hWnd = CreateWindowEx(
         0, CLASS_NAME, "Lyra Synth",
         WS_OVERLAPPEDWINDOW,
-        posX, posY, // 修改位置参数
+        posX, posY,
         windowWidth, windowHeight,
-        NULL, NULL, hInstance, NULL);
+        NULL, NULL, hInstance, gui);
 
     // 创建波形选择下拉框
     CreateWindow("COMBOBOX", "",
@@ -39,11 +39,10 @@ GUI *gui_create(HINSTANCE hInstance, Synth *synth)
                  gui->hWnd, (HMENU)ID_WAVE_COMBO, hInstance, NULL);
 
     // 添加波形选项
-    SendDlgItemMessage(gui->hWnd, ID_WAVE_COMBO, CB_ADDSTRING, 0, (LPARAM) "Square");
     SendDlgItemMessage(gui->hWnd, ID_WAVE_COMBO, CB_ADDSTRING, 0, (LPARAM) "Sine");
+    SendDlgItemMessage(gui->hWnd, ID_WAVE_COMBO, CB_ADDSTRING, 0, (LPARAM) "Square");
     SendDlgItemMessage(gui->hWnd, ID_WAVE_COMBO, CB_ADDSTRING, 0, (LPARAM) "Sawtooth");
     SendDlgItemMessage(gui->hWnd, ID_WAVE_COMBO, CB_ADDSTRING, 0, (LPARAM) "Triangle");
-    SendDlgItemMessage(gui->hWnd, ID_WAVE_COMBO, CB_SETCURSEL, 0, 0);
 
     // 初始化双缓冲
     GetClientRect(gui->hWnd, &gui->clientRect);
@@ -61,16 +60,11 @@ GUI *gui_create(HINSTANCE hInstance, Synth *synth)
 void gui_update(GUI *gui, const Synth *synth)
 {
     // 绘制到缓冲DC
-    FillRect(gui->hdcBuffer, &gui->clientRect, (HBRUSH)(COLOR_WINDOW + 1));
-
-    // 绘制八度信息
-    char text[64];
-    SetBkMode(gui->hdcBuffer, TRANSPARENT);
-    sprintf(text, "Current Octave: %d", (gui->octave / 12) + 3);
-    TextOut(gui->hdcBuffer, 20, 60, text, strlen(text));
+    FillRect(gui->hdcBuffer, &gui->clientRect, (HBRUSH)(COLOR_WINDOW));
 
     // 绘制活动音符
-    int y = 100;
+    char text[64];
+    int y = 60;
     for (int i = 0; i < MAX_VOICES; i++)
     {
         if (synth->voices[i].active)
@@ -122,16 +116,16 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
                     switch (sel)
                     {
                     case 0:
-                        gui->synth->default_wave = WAVE_SQUARE;
+                        gui->synth->wave_type = WAVE_SINE;
                         break;
                     case 1:
-                        gui->synth->default_wave = WAVE_SINE;
+                        gui->synth->wave_type = WAVE_SQUARE;
                         break;
                     case 2:
-                        gui->synth->default_wave = WAVE_SAWTOOTH;
+                        gui->synth->wave_type = WAVE_SAWTOOTH;
                         break;
                     case 3:
-                        gui->synth->default_wave = WAVE_TRIANGLE;
+                        gui->synth->wave_type = WAVE_TRIANGLE;
                         break;
                     }
                 }
@@ -141,7 +135,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 
     case WM_PAINT:
         if (gui)
-            gui_update(gui, NULL);
+            gui_update(gui, gui->synth);
         break;
 
     case WM_CLOSE:

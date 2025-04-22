@@ -14,7 +14,7 @@ void synth_init(Synth *synth)
     {
         synth->voices[i] = (Voice){0};
     }
-    synth->default_wave = WAVE_SQUARE;
+    synth->wave_type = WAVE_SQUARE;
     synth->default_amp = 32767 / MAX_VOICES;
     synth->master_vol = 1.0f;
 }
@@ -50,7 +50,6 @@ void synth_midi_in(Synth *synth, const uint8_t *msg)
                 v->note = note;
                 v->frequency = midi_to_freq(note);
                 v->amplitude = (int)((vel / 127.0f) * synth->default_amp);
-                v->wave_type = synth->default_wave;
                 break;
             }
         }
@@ -86,7 +85,7 @@ short synth_process(Synth *synth, double sr)
         double pos = v->phase;
         short sample = 0;
 
-        switch (v->wave_type)
+        switch (synth->wave_type)
         {
         case WAVE_SINE:
             sample = amp * sin(2 * M_PI * pos);

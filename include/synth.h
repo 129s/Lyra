@@ -17,7 +17,6 @@ typedef struct
     bool active;
     float frequency;
     int amplitude;
-    WaveType wave_type;
     double phase;
     uint8_t note;
 } Voice;
@@ -25,7 +24,7 @@ typedef struct
 typedef struct
 {
     Voice voices[MAX_VOICES];
-    WaveType default_wave;
+    WaveType wave_type;
     int default_amp;
     float master_vol;
 } Synth;

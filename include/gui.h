@@ -9,7 +9,6 @@ typedef struct
     HDC hdcBuffer;
     HBITMAP hbmBuffer;
     RECT clientRect;
-    int octave;
     Synth *synth;       // 关联合成器指针
     int wave_sel_index; // 当前选择的波形索引
 } GUI;
