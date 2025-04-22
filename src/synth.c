@@ -15,7 +15,7 @@ void synth_init(Synth *synth)
         synth->voices[i] = (Voice){0};
     }
     synth->default_wave = WAVE_SQUARE;
-    synth->default_amp = 30000;
+    synth->default_amp = 19684;
     synth->master_vol = 1.0f;
     synth->active_voices = 0;
     synth->auto_volume = true;
@@ -32,33 +32,49 @@ void synth_midi_in(Synth *synth, const uint8_t *msg)
     case 0x90: // Note On
         if (vel > 0)
         {
-            // Voice分配策略：优先复用相同音符
+            // 查找现有相同音符的voice或空闲voice
             int target = -1;
             for (int i = 0; i < MAX_VOICES; i++)
             {
-                if (synth->voices[i].note == note)
+                if (synth->voices[i].note == note && synth->voices[i].active)
                 {
                     target = i;
                     break;
                 }
-                if (target == -1 && !synth->voices[i].active)
-                    target = i;
             }
             if (target == -1)
-                target = rand() % MAX_VOICES; // 随机置换
-
-            if (!synth->voices[target].active)
             {
-                synth->active_voices++; // 新增语音时增加计数器
+                // 寻找空闲voice
+                for (int i = 0; i < MAX_VOICES; i++)
+                {
+                    if (!synth->voices[i].active)
+                    {
+                        target = i;
+                        break;
+                    }
+                }
             }
+            if (target == -1)
+            {
+                // 随机替换
+                target = rand() % MAX_VOICES;
+                if (synth->voices[target].active)
+                    synth->active_voices--;
+            }
+
+            // 保留相位（如果复用现有voice）
+            double phase = (target != -1 && synth->voices[target].active) ? synth->voices[target].phase : 0.0;
 
             synth->voices[target] = (Voice){
                 .active = true,
                 .frequency = midi_to_freq(note),
                 .amplitude = (vel * synth->default_amp) / 127,
                 .wave_type = synth->default_wave,
-                .phase = 0,
+                .phase = phase, // 保留相位
                 .note = note};
+
+            if (!synth->voices[target].active)
+                synth->active_voices++;
         }
         break;
 
@@ -91,6 +107,7 @@ short synth_process(Synth *synth, double sr)
         if (synth->auto_volume && synth->active_voices > 0)
         {
             amp /= synth->active_voices;
+            printf("%f\n", amp);
         }
 
         // 波形生成逻辑

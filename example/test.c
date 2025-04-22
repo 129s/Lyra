@@ -1,5 +1,6 @@
-
+// example/test.c
 #include <stdio.h>
+#include <windows.h>
 #include "audio.h"
 #include "synth.h"
 #include "keyboard.h"
@@ -22,15 +23,23 @@ int main()
 
     Synth synth;
     synth_init(&synth);
-    synth.default_wave = WAVE_SQUARE;
+    synth.default_wave = WAVE_SAWTOOTH;
     mixer_add(ctx.mixer, &synth);
 
-    // 初始化键盘输入
     keyboard_init(midi_handler, &synth);
-
     audio_play(&ctx);
-    printf("Playing... Use keyboard (A-J,W,E,T,Y,U) to play notes. Press Enter to exit.\n");
-    getchar();
+
+    printf("Playing...\n");
+
+    // 消息循环
+    MSG msg;
+    while (GetMessage(&msg, NULL, 0, 0))
+    {
+        if (msg.message == WM_KEYDOWN && msg.wParam == VK_ESCAPE)
+            break;
+        TranslateMessage(&msg);
+        DispatchMessage(&msg);
+    }
 
     keyboard_close();
     audio_cleanup(&ctx);
