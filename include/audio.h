@@ -21,5 +21,3 @@ typedef struct
 int audio_init(AudioContext *ctx, int sample_rate);
 // 开始播放
 void audio_play(AudioContext *ctx);
-// 停止并释放资源
-void audio_cleanup(AudioContext *ctx);

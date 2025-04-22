@@ -45,10 +45,5 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         DispatchMessage(&msg);
     }
 
-    // 清理资源
-    audio_cleanup(&ctx);
-    gui_destroy(gui);
-    keyboard_close();
-
     return 0;
 }

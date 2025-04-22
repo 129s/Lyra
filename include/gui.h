@@ -19,5 +19,3 @@ GUI *gui_create(HINSTANCE hInstance, Synth *synth);
 LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 // 更新显示
 void gui_update(GUI *gui, const Synth *synth);
-// 销毁资源
-void gui_destroy(GUI *gui);

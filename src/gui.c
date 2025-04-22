@@ -49,14 +49,6 @@ GUI *gui_create(HINSTANCE hInstance, Synth *synth)
     return gui;
 }
 
-void gui_destroy(GUI *gui)
-{
-    DeleteDC(gui->hdcBuffer);
-    DeleteObject(gui->hbmBuffer);
-    DestroyWindow(gui->hWnd);
-    free(gui);
-}
-
 LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
     GUI *gui = (GUI *)GetWindowLongPtr(hWnd, GWLP_USERDATA);
@@ -81,7 +73,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
         break;
 
     case WM_DESTROY:
-        printf("QUIT");
         PostQuitMessage(0);
         return 0;
 

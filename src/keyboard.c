@@ -133,12 +133,3 @@ void keyboard_init(MidiCallback callback, void *user)
     // 使用WH_KEYBOARD_LL钩子（需设置消息循环）
     hKeyboardHook = SetWindowsHookEx(WH_KEYBOARD_LL, LowLevelKeyboardProc, GetModuleHandle(NULL), 0);
 }
-
-void keyboard_close()
-{
-    if (hKeyboardHook)
-    {
-        UnhookWindowsHookEx(hKeyboardHook);
-        hKeyboardHook = NULL;
-    }
-}

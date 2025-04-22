@@ -41,29 +41,7 @@ void audio_play(AudioContext *ctx)
             MessageBox(NULL, errorMsg, "Audio Error", MB_ICONERROR);
             return;
         }
-        else
-        {
-            char debugMsg[64];
-            sprintf(debugMsg, "[DEBUG] Buffer %d submitted successfully.\n", i);
-            OutputDebugString(debugMsg);
-        }
     }
-}
-
-void audio_cleanup(AudioContext *ctx)
-{
-    // 停止播放并取消所有未完成的缓冲区
-    waveOutReset(ctx->hWaveOut);
-
-    // 释放 Mixer 及其 Synths
-    mixer_free(ctx->mixer);
-    // 释放缓冲区内存
-    for (int i = 0; i < NUM_BUFFERS; ++i)
-    {
-        waveOutUnprepareHeader(ctx->hWaveOut, &ctx->buffers[i], sizeof(WAVEHDR));
-        HeapFree(GetProcessHeap(), 0, ctx->buffers[i].lpData);
-    }
-    waveOutClose(ctx->hWaveOut);
 }
 
 static void fill_buffer(WAVEHDR *header, AudioContext *ctx)
