@@ -30,7 +30,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
     // 初始化键盘和GUI
     keyboard_init(midi_handler, &synth);
-    GUI *gui = gui_create(hInstance); // 使用WinMain的hInstance
+    GUI *gui = gui_create(hInstance, &synth); // 使用WinMain的hInstance
     synth.default_wave = WAVE_SQUARE;
 
     // 开始播放音频
@@ -56,8 +56,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     }
 
     // 清理资源
-    keyboard_close();
     audio_cleanup(&ctx);
     gui_destroy(gui);
+    keyboard_close();
     return 0;
 }

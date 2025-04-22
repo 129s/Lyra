@@ -3,9 +3,11 @@
 
 #define ID_WAVE_COMBO 1001
 
-GUI *gui_create(HINSTANCE hInstance)
+GUI *gui_create(HINSTANCE hInstance, Synth *synth)
 {
     GUI *gui = malloc(sizeof(GUI));
+    gui->synth = synth; // 关联合成器
+    gui->wave_sel_index = 0;
     const char CLASS_NAME[] = "LyraWindowClass";
 
     WNDCLASS wc = {0};
@@ -31,8 +33,10 @@ GUI *gui_create(HINSTANCE hInstance)
         NULL, NULL, hInstance, NULL);
 
     // 创建波形选择下拉框
-    CreateWindow("COMBOBOX", "", WS_CHILD | WS_VISIBLE | CBS_DROPDOWNLIST,
-                 20, 20, 150, 200, gui->hWnd, (HMENU)ID_WAVE_COMBO, hInstance, NULL);
+    CreateWindow("COMBOBOX", "",
+                 WS_CHILD | WS_VISIBLE | CBS_DROPDOWNLIST | WS_VSCROLL,
+                 20, 20, 150, 100,
+                 gui->hWnd, (HMENU)ID_WAVE_COMBO, hInstance, NULL);
 
     // 添加波形选项
     SendDlgItemMessage(gui->hWnd, ID_WAVE_COMBO, CB_ADDSTRING, 0, (LPARAM) "Square");
@@ -96,25 +100,52 @@ void gui_destroy(GUI *gui)
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
-    static GUI *gui = NULL;
+    GUI *gui = (GUI *)GetWindowLongPtr(hWnd, GWLP_USERDATA);
 
     switch (msg)
     {
     case WM_CREATE:
         gui = ((CREATESTRUCT *)lParam)->lpCreateParams;
+        SetWindowLongPtr(hWnd, GWLP_USERDATA, (LONG_PTR)gui);
         break;
 
     case WM_COMMAND:
-        if (LOWORD(wParam) == ID_WAVE_COMBO && HIWORD(wParam) == CBN_SELCHANGE)
+        if (LOWORD(wParam) == ID_WAVE_COMBO)
         {
-            int sel = SendMessage((HWND)lParam, CB_GETCURSEL, 0, 0);
-            // 更新全局合成器波形类型（需在外部处理）
+            if (HIWORD(wParam) == CBN_SELCHANGE)
+            {
+                int sel = SendMessage((HWND)lParam, CB_GETCURSEL, 0, 0);
+                if (sel != CB_ERR)
+                {
+                    gui->wave_sel_index = sel;
+                    // 更新合成器波形类型
+                    switch (sel)
+                    {
+                    case 0:
+                        gui->synth->default_wave = WAVE_SQUARE;
+                        break;
+                    case 1:
+                        gui->synth->default_wave = WAVE_SINE;
+                        break;
+                    case 2:
+                        gui->synth->default_wave = WAVE_SAWTOOTH;
+                        break;
+                    case 3:
+                        gui->synth->default_wave = WAVE_TRIANGLE;
+                        break;
+                    }
+                }
+            }
         }
         break;
 
     case WM_PAINT:
         if (gui)
             gui_update(gui, NULL);
+        break;
+
+    case WM_CLOSE:
+        DestroyWindow(hWnd);
         break;
 
     case WM_DESTROY:
