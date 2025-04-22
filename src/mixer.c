@@ -14,6 +14,8 @@ Mixer *mixer_create()
 
 void mixer_free(Mixer *mixer)
 {
+    if (!mixer)
+        return;
     free(mixer->synths);
     free(mixer);
 }

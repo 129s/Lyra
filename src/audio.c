@@ -44,6 +44,22 @@ void audio_play(AudioContext *ctx)
     }
 }
 
+void audio_close(AudioContext *ctx)
+{
+    if (ctx->hWaveOut)
+    {
+        waveOutClose(ctx->hWaveOut);
+        ctx->hWaveOut = NULL;
+    }
+
+    // 释放混音器资源
+    if (ctx->mixer)
+    {
+        mixer_free(ctx->mixer);
+        ctx->mixer = NULL;
+    }
+}
+
 static void fill_buffer(WAVEHDR *header, AudioContext *ctx)
 {
     short *samples = (short *)header->lpData;
