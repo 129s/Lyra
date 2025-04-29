@@ -13,7 +13,7 @@ stmt: refstmt;
 
 // 引用语句
 refstmt: AT ref EQUAL element;
-ref: ID;
+ref: ID (DOT ID)*;
 
 // 容器
 container:
