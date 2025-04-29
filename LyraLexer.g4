@@ -14,9 +14,6 @@ UNIT: 'unit';
 KEY: 'key';
 OCT: 'oct';
 
-// 引用关键字
-REF: 'ref';
-
 // 标志符
 ID: [a-zA-Z_][a-zA-Z0-9_]*;
 

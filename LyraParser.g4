@@ -6,8 +6,16 @@ options {
 
 root: content EOF;
 
-element: container | pitch | chord | placeholder;
+element: container | pitch | chord | placeholder | ref | stmt;
 
+// 语句
+stmt: refstmt;
+
+// 引用语句
+refstmt: AT ref EQUAL element;
+ref: ID;
+
+// 容器
 container:
 	sequenceContainer
 	| parallelContainer
