@@ -8,13 +8,14 @@ WS: [ \t\r\n]+ -> skip;
 REST: '0';
 
 // 元数据
-TEMPO: 'tempo';
-METER: 'meter';
-UNIT: 'unit';
-KEY: 'key';
-OCT: 'oct';
+NAME: 'name'; // 包名
+TEMPO: 'tempo'; // bpm
+METER: 'meter'; // 拍号
+UNIT: 'unit'; // 单位时间
+KEY: 'key'; // 调号
+OCT: 'oct'; // 音域
 
-// 标志符
+// 标识符
 ID: [a-zA-Z_][a-zA-Z0-9_]*;
 
 // 容器符号
