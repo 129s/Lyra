@@ -4,44 +4,36 @@ lexer grammar LyraLexer;
 COMMENT: '//' ~[\r\n]* -> skip;
 WS: [ \t\r\n]+ -> skip;
 
-// 休止符
-REST: '0';
-
-// 容器元数据
-NAME: 'name'; // 包名
-TEMPO: 'tempo'; // bpm
-METER: 'meter'; // 拍号
-UNIT: 'unit'; // 单位时间
-KEY: 'key'; // 调号
-OCT: 'oct'; // 音域
-
 // 标识符
 ID: [a-zA-Z_][a-zA-Z0-9_]*;
 
-// 符号
-LBRACE: '{';
-RBRACE: '}';
-LBRACK: '[';
-RBRACK: ']';
-LPAREN: '(';
-RPAREN: ')';
-
-AT: '@';
-EQUAL: '=';
-
-COLON: ':';
-SEMI: ';';
-DOT: '.';
-BANG: '!';
-APOSTROPHE: '\'';
-QUOTATION: '"';
-
 // 数值类型
 FLOAT: '0' '.' [0-9]+ | [1-9][0-9]* '.' [0-9]+;
-FRACTION: [0-9]+ '/' [0-9]+;
+FRACTION: [0-9]+ '/' [0-9]+ | INT;
 INT: [0-9]+;
 
 // 音高相关
-PITCH_LETTER: [CDEFGAB];
-MODIFIER: ('b' | '#')+;
-OCTAVE_MOD: [+-]+;
+OCTAVE_NUMBER: [0-9];
+MIDI_NUMBER:
+	[0-9]
+	| [1-9][0-9]
+	| '1' [01][0-9]
+	| '12' [0-7]; // 0-127
+PITCH_LETTER: [A-G];
+SCALE_STEP: [1-7]| '1' [0-3]; // 最高到13音
+PITCH_MODIFIER: ('b' | '#')+;
+OCTAVE_MODIFIER: [+-]+;
+
+// 音阶
+SCALE:
+	'major'
+	| 'minor'
+	| 'ionian'
+	| 'dorian'
+	| 'phrygian'
+	| 'lydian'
+	| 'mixolydian'
+	| 'aeolian'
+	| 'locrian'
+	| 'minor pentatonic'
+	| 'major pentatonic';

@@ -4,60 +4,110 @@ options {
 	tokenVocab = LyraLexer;
 }
 
-root: clip | clipContent EOF; //全局层级可省略大括号
+root:
+	refDeclare* (clip | sequenceClipContent) EOF; // 全局层级可省略大括号默认为串行Clip
 
-// clip：音乐片段，可选：语句/前后对齐锚点
-clip: LBRACE clipContent RBRACE;
+// clip：片段
+// 片段通过自身类型和子元素锚点来组合子元素
+// clip的unit属性将传递给其子元素，因此clip时值由子元素共同决定
+clip: sequenceClip | parallelClip;
+
+// 串行Clip
 // 依次将前一个子元素的后对齐符与后一个子元素的前对齐符对齐，子元素间首尾相接
-clipContent:
-	stmt* element* alignmentHeader? element* alignmentFooter? element*;
+// 可选：语句/前后对齐锚点
+sequenceClip: '{' sequenceClipContent '}';
+sequenceClipContent:
+	propertyDeclare* element* alignmentHeader? element* alignmentFooter? element*;
+
+// 并行Clip
+// 将所有子元素的前对齐符对齐
+parallelClip: '(' propertyDeclare* element* ')';
 
 // 对齐标志符
-alignmentHeader: COLON;
-alignmentFooter: SEMI;
-// 对齐标识符用于设置容器的对齐点，具体的对齐行为由容器的父容器决定
+// 对齐标识符用于设置对齐点，具体的对齐行为由父元素决定
+alignmentHeader: ':';
+alignmentFooter: ';';
 
-// 语句
-stmt: refStmt;
+// 声明引用
+refDeclare: '@' ref '=' element;
 
-// 引用语句
-refStmt: AT ref EQUAL element;
-ref: ID (DOT ID)*;
+// 用于Clip声明属性
+propertyDeclare: tonalProperty | riddimProperty;
 
-// 元语句
-metaStmt:
-	AT NAME EQUAL ID
-	| AT TEMPO EQUAL (FLOAT | INT)
-	| AT UNIT EQUAL FRACTION
-	| AT METER EQUAL FRACTION
-	| AT KEY EQUAL PITCH_LETTER
-	| AT OCT EQUAL INT;
+// 调性属性
+tonalProperty:
+	'@key' WS? '=' WS? absolutePitch
+	| '@key' WS? '=' WS? absolutePitch (WS SCALE)?; // 可选音阶，默认为major
 
-// 容器
-container: parallelContainer | sliceContainer;
-
-// 平行容器
-parallelContainer: LPAREN element* RPAREN;
-// 将所有子元素的前对齐符对齐
-
-// 均分容器
-sliceContainer: LBRACK element* RBRACK;
-// 根据子元素个数n将自身时间均分为n份，将子元素的前对齐符对齐至第n等分点 
+// 节奏属性
+riddimProperty:
+	'@tempo' WS? '=' WS? (FLOAT | INT) // 速度，bpm，默认120
+	| '@meter' WS? '=' WS? FRACTION // 拍号，默认4/4
+	| '@unit' WS? '=' WS? FRACTION; // 单位时值，默认为1
 
 // 元素
-element: container | pitch | chord | placeholder | ref;
+element: clip | container | ref;
+
+// 容器
+// 自身时值固定，由unit属性决定，或通过后置时值修饰符显示指定
+container: containerBody durationModifier?;
+
+// 时值修饰符
+durationModifier: '~' FRACTION;
+
+// 容器主体
+// 可以为布局/基本元素
+containerBody: layout | basicElement;
+
+// 布局
+// 可按照一定节奏型排布子元素（基本元素，时值由布局根据自身类型和自身时值计算得出）
+// 通过布局修饰符确定类型
+// 默认为均分布局
+layout: typeModifier? layoutBody;
+
+// 布局主体
+layoutBody: '[' container* ']';
+
+// 布局类型修饰符
+typeModifier: layoutType ':';
+
+// 布局类型
+layoutType:
+	'slicer'; // 均分类型: 根据子元素个数n将自身时间均分为n份，将子元素的前对齐符对齐至第n等分点
+
+// 基本元素
+basicElement: pitch | chord | placeholder;
+
+// 引用
+ref: ID ('.' ID)*;
 
 // 填充占位符
-placeholder: DOT;
+placeholder: '.';
 
 // 音高
-pitch:
-	MODIFIER? (PITCH_LETTER (INT OCTAVE_MOD?)? | INT) OCTAVE_MOD?
-	| REST;
+pitch: absolutePitch | relativePitch | REST;
+
+// 绝对音高
+absolutePitch:
+	PITCH_MODIFIER* PITCH_LETTER OCTAVE_NUMBER OCTAVE_MODIFIER*
+	| midiPitch;
+
+// MIDI音高，用'!'与调内音高区分
+midiPitch: '!' MIDI_NUMBER;
+
+// 调内音高
+relativePitch: PITCH_MODIFIER* SCALE_STEP OCTAVE_MODIFIER*;
+
+// 休止符
+REST: '0';
 
 // 和弦
-chord:
-	pitch APOSTROPHE (
+// 通过'与音高区分
+chord: abosoluteChord | relativeChord;
+abosoluteChord: absolutePitch '\'' chordBody;
+relativeChord: relativePitch '\'' chordBody;
+
+chordBody: (
 		chordQuality
 		| chordSus
 		| chordAlteration
