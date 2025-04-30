@@ -7,7 +7,7 @@ WS: [ \t\r\n]+ -> skip;
 // 休止符
 REST: '0';
 
-// 元数据
+// 容器元数据
 NAME: 'name'; // 包名
 TEMPO: 'tempo'; // bpm
 METER: 'meter'; // 拍号
@@ -18,7 +18,7 @@ OCT: 'oct'; // 音域
 // 标识符
 ID: [a-zA-Z_][a-zA-Z0-9_]*;
 
-// 容器符号
+// 符号
 LBRACE: '{';
 RBRACE: '}';
 LBRACK: '[';
@@ -26,9 +26,15 @@ RBRACK: ']';
 LPAREN: '(';
 RPAREN: ')';
 
-// 声明元数据
 AT: '@';
 EQUAL: '=';
+
+COLON: ':';
+SEMI: ';';
+DOT: '.';
+BANG: '!';
+APOSTROPHE: '\'';
+QUOTATION: '"';
 
 // 数值类型
 FLOAT: '0' '.' [0-9]+ | [1-9][0-9]* '.' [0-9]+;
@@ -39,13 +45,3 @@ INT: [0-9]+;
 PITCH_LETTER: [CDEFGAB];
 MODIFIER: ('b' | '#')+;
 OCTAVE_MOD: [+-]+;
-
-// 时间对齐
-COLON: ':';
-SEMI: ';';
-
-// 空白填充
-DOT: '.';
-
-// 和弦声明
-APOSTROPHE: '\'';
