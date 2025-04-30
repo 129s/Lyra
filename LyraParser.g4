@@ -17,7 +17,10 @@ clip: sequenceClip | parallelClip;
 // 可选：语句/前后对齐锚点
 sequenceClip: '{' sequenceClipContent '}';
 sequenceClipContent:
-	propertyDeclare* element* alignmentHeader? element* alignmentFooter? element*;
+	propertyDeclare* sequenceHead sequenceBody sequenceTail;
+sequenceHead: element*;
+sequenceTail: element*;
+sequenceBody: alignmentHeader? element* alignmentTailer?;
 
 // 并行Clip
 // 将所有子元素的前对齐符对齐
@@ -26,7 +29,7 @@ parallelClip: '(' propertyDeclare* element* ')';
 // 对齐标志符
 // 对齐标识符用于设置对齐点，具体的对齐行为由父元素决定
 alignmentHeader: ':';
-alignmentFooter: ';';
+alignmentTailer: ';';
 
 // 声明引用
 refDeclare: '@' ref '=' element;
@@ -49,7 +52,7 @@ riddimProperty:
 element: clip | container | ref;
 
 // 容器
-// 自身时值固定，由unit属性决定，或通过后置时值修饰符显示指定
+// 自身时值固定，默认由unit属性决定，可同后置时值修饰符改变
 container: containerBody durationModifier?;
 
 // 时值修饰符
@@ -79,7 +82,7 @@ layoutType:
 basicElement: pitch | chord | placeholder;
 
 // 引用
-ref: ID ('.' ID)*;
+ref: ID;
 
 // 填充占位符
 placeholder: '.';
